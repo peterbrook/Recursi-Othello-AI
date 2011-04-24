@@ -42,11 +42,5 @@ public interface State extends Comparable<State>, Cloneable {
 	 * @return The current Status.
 	 */
 	public Status getStatus();
-	
-	/**
-	 * For traces, we need to be able to print out a String representation of this State.
-	 * @return A String representation of this State.
-	 */
-	public String toString();
 
 }
