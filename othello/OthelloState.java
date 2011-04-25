@@ -277,7 +277,7 @@ public class OthelloState implements State {
 				vBoard[y] = line;
 				return;
 			case 2:
-				dBoard1[x + y - 1] = line;
+				dBoard1[x + y] = line;
 				return;
 			case 3:
 				dBoard2[x - y + dimension - 1] = line;
@@ -343,7 +343,7 @@ public class OthelloState implements State {
 	 * Generate bit-boards representing the validity of moves for each player.
 	 * 00 = invalid; 10 = valid. 2 bits so we can use point lookup table.
 	 */
-	private void generateMoveBoards() {
+	public void generateMoveBoards() {
 		for (byte i = 0; i < dimension; i++) {
 			for (byte j = 0; j < dimension; j++) {
 				if (this.moveIsValid(i, j, true))
@@ -355,6 +355,7 @@ public class OthelloState implements State {
 				this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] << 2);
 			}
 		}
+		System.out.println("fuck you");
 	}
 	
 	/**
