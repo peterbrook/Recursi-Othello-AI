@@ -394,7 +394,7 @@ public class OthelloState implements State {
 		short[] lines = this.getLines(x, y);
 		for (byte i = 0; i < 4; i++) {
 			byte index = getIndex(i, x, y);
-			short newLine = setSpotOnLine(lines[i], value, index);
+			short newLine = setSpotOnLine(lines[i], index, value);
 			this.setLine(i, newLine, x, y);
 		}
 	}
