@@ -10,7 +10,7 @@ public class Othello {
 		OthelloState startState = new OthelloState();
 		startState.setStandardStartState();
 		new Game(new NegaMaxDecider(true, 10),
-				 new NegaMaxDecider(false, 10),
+				 new OthelloPlayer(false),//new NegaMaxDecider(false, 10),
 				 startState).run();
 	}
 	
