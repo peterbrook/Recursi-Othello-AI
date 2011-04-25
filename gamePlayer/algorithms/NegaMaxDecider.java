@@ -21,7 +21,7 @@ public class NegaMaxDecider implements Decider {
 	private int depth;
 	private int maxdepth;
 	// Used to generate a graph of the search space for each turn in SVG format
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	private static final boolean DEBUG_PRINT = false;
 
 	/**
@@ -53,14 +53,14 @@ public class NegaMaxDecider implements Decider {
 			try {
 				// Algorithm!
 				State newState = action.applyTo(state);
-				System.out.println("Root: Before calling NegaMax alpha:"+alpha+" beta:"+beta);
+				indentedPrint(0, "Root: Before calling NegaMax alpha:"+alpha+" beta:"+beta);
 				float newValue = -NegaMax(newState, 1, -beta, -alpha, -flag);
-				System.out.println("Root: got value:"+newValue);
+				indentedPrint(0, "Root: got value:"+newValue);
 				if (DEBUG)
 					GraphVizPrinter.setRelation(newState, newValue, state);
 
 				alpha = Math.max(alpha, newValue);
-				System.out.println("Root: new alpha:"+alpha);
+				indentedPrint(0, "Root: new alpha:"+alpha);
 				// Better candidates?
 				if (flag * newValue > flag * value) {
 					value = newValue;
@@ -87,10 +87,12 @@ public class NegaMaxDecider implements Decider {
 	}
 
 	private void indentedPrint(int depth, String s) {
-		for (int i=0; i < depth; i++) {
-			System.out.print("\t");
+		if (DEBUG_PRINT) {
+			for (int i=0; i < depth; i++) {
+				System.out.print("\t");
+			}
+			System.out.println(s);
 		}
-		System.out.println(s);
 	}
 	private float NegaMax(State s, int depth, float alpha, float beta, int color)
 			throws InvalidActionException {
