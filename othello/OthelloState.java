@@ -380,7 +380,21 @@ public class OthelloState implements State {
 			if (i == skip) continue; 
 			byte index = getIndex(i, x, y);
 			short newLine = flipValueOnLine(lines[i], index);
-			
+			this.setLine(i, newLine, x, y);
+		}
+	}
+	
+	/**
+	 * Set a spot to a value without repercussions.
+	 * @param x     The x-coordinate of the spot.
+	 * @param y     The y-coordinate of the spot.
+	 * @param value The value to set to.
+	 */
+	public void setValueOnBoards(byte x, byte y, byte value) {
+		short[] lines = this.getLines(x, y);
+		for (byte i = 0; i < 4; i++) {
+			byte index = getIndex(i, x, y);
+			short newLine = setSpotOnLine(lines[i], value, index);
 			this.setLine(i, newLine, x, y);
 		}
 	}
