@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
-
-
 /**
  * This class represents an AI Decider that uses a MiniMax algorithm.
  * We use alpha-beta pruning, but besides that we're pretty vanilla.
@@ -59,6 +57,7 @@ public class MiniMaxDecider implements Decider {
 			try {
 				// Algorithm!
 				State newState = action.applyTo(state);
+				System.out.println(newState);
 				float newValue = this.miniMaxRecursor(newState,
 						Float.NEGATIVE_INFINITY,
 						Float.POSITIVE_INFINITY, 

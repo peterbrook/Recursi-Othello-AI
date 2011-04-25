@@ -44,6 +44,7 @@ public class Game {
 		// Try to apply it
 		try {
 			currentState = action.applyTo(currentState);
+			System.out.println(currentState);
 		} catch (InvalidActionException e) {
 			throw new RuntimeException("Invalid action!");
 		}
