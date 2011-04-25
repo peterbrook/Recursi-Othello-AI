@@ -1,10 +1,14 @@
 package othello;
 
+import gamePlayer.Action;
 import gamePlayer.Decider;
+import gamePlayer.InvalidActionException;
+import gamePlayer.State.Status;
 import gamePlayer.algorithms.NegaMaxDecider;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -13,6 +17,7 @@ import java.awt.event.MouseListener;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
@@ -23,12 +28,23 @@ class GamePanel extends JPanel implements MouseListener {
 	private Decider playerOne;
 	private Decider playerTwo;
 	private boolean turn;
+	private boolean inputEnabled;
 	
 	public GamePanel(Decider p1, Decider p2, OthelloState board) {
 		this.board = board;
 		this.playerOne = p1;
 		this.playerTwo = p2;
 		this.turn = true;
+		addMouseListener(this);
+		javax.swing.SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				Cursor savedCursor = getCursor();
+				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+				computerMove();
+				setCursor(savedCursor);
+			}
+		});
+		setBackground(Color.green);
 	}
 	
 	protected void drawPanel(Graphics g) {
@@ -44,16 +60,17 @@ class GamePanel extends JPanel implements MouseListener {
 					* OthelloGUI.Square_L);
 		}
 		g.drawLine(0, OthelloGUI.Height, OthelloGUI.Width, OthelloGUI.Height);
+		System.out.println("Redrawing board\n"+board);
 		for (int i = 0; i < 8; i++)
 			for (int j = 0; j < 8; j++)
-				switch (board.at(i, j)) {
-				case '2':
+				switch (board.at(j, i)) {
+				case '3':
 					g.setColor(Color.white);
 					g.fillOval(1 + i * OthelloGUI.Square_L, 1 + j
 							* OthelloGUI.Square_L, OthelloGUI.Square_L - 1,
 							OthelloGUI.Square_L - 1);
 					break;
-				case '3':
+				case '2':
 					g.setColor(Color.black);
 					g.fillOval(1 + i * OthelloGUI.Square_L, 1 + j
 							* OthelloGUI.Square_L, OthelloGUI.Square_L - 1,
@@ -73,7 +90,75 @@ class GamePanel extends JPanel implements MouseListener {
 	}
 	
 	@Override
-	public void mouseClicked(MouseEvent arg0) {
+	public void mouseClicked(MouseEvent e) {
+		if (inputEnabled) {
+			int j = e.getX() / OthelloGUI.Square_L;
+			int i = e.getY() / OthelloGUI.Square_L;
+			if ((i < 8) && (j < 8) && (board.at(i, j) == '0')) {
+				try {
+					board = new OthelloAction(false, (byte)i, (byte)j).applyTo(board);
+					inputEnabled = false;
+				} catch (InvalidActionException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				/*
+				 * score_black.setText(Integer.toString(board.getCounter(TKind.black
+				 * )));
+				 * score_white.setText(Integer.toString(board.getCounter(TKind
+				 * .white)));
+				 */
+				repaint();
+				javax.swing.SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						Cursor savedCursor = getCursor();
+						setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+						computerMove();
+						setCursor(savedCursor);
+					}
+				});
+			} else
+				JOptionPane.showMessageDialog(this, "Illegal move", "Reversi",
+						JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	public void computerMove() {
+		if (board.getStatus() != Status.Ongoing) {
+			showWinner();
+			return;
+		}
+		
+		OthelloAction action = (OthelloAction) playerOne.decide(board);
+		try {
+			board = action.applyTo(board);
+			System.out.println(board);
+		} catch (InvalidActionException e) {
+			throw new RuntimeException("Invalid action!");
+		}
+		repaint();
+		// Next person's turn
+		this.turn = !this.turn;
+		inputEnabled = true;
+		/*
+		 * Move move = new Move(); if
+		 * (board.findMove(TKind.white,gameLevel,move)) {
+		 * board.move(move,TKind.white);
+		 * score_black.setText(Integer.toString(board.getCounter(TKind.black)));
+		 * score_white.setText(Integer.toString(board.getCounter(TKind.white)));
+		 * repaint(); if (board.gameEnd()) showWinner(); else if
+		 * (!board.userCanMove(TKind.black)) {
+		 * JOptionPane.showMessageDialog(this,
+		 * "You pass...","Reversi",JOptionPane.INFORMATION_MESSAGE);
+		 * javax.swing.SwingUtilities.invokeLater(new Runnable() { public void
+		 * run() { computerMove(); } }); } } else if
+		 * (board.userCanMove(TKind.black)) JOptionPane.showMessageDialog(this,
+		 * "I pass...","Reversi",JOptionPane.INFORMATION_MESSAGE); else
+		 * showWinner();
+		 */
+	}
+	
+	private void showWinner() {
 		// TODO Auto-generated method stub
 		
 	}
