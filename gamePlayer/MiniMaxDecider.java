@@ -57,7 +57,6 @@ public class MiniMaxDecider implements Decider {
 			try {
 				// Algorithm!
 				State newState = action.applyTo(state);
-				System.out.println(newState);
 				float newValue = this.miniMaxRecursor(newState,
 						Float.NEGATIVE_INFINITY,
 						Float.POSITIVE_INFINITY, 
