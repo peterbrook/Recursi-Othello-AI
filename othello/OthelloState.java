@@ -355,7 +355,6 @@ public class OthelloState implements State {
 				this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] << 2);
 			}
 		}
-		System.out.println("fuck you");
 	}
 	
 	/**
@@ -447,7 +446,7 @@ public class OthelloState implements State {
 			state.p2MoveBoard = new short[dimension];
 		}
 		// Make the move
-		state.executeMove(!this.move, x, y);
+		state.executeMove(this.move, x, y);
 		// Get move boards
 		state.generateMoveBoards();
 		return state;
@@ -490,7 +489,7 @@ public class OthelloState implements State {
 			short mask = 3;
 			for (byte j = 0; j < dimension; j++) {
 				if ((moveBoard[i] & mask) != 0)
-					actions.add(new OthelloAction(this.move, i, j));
+					actions.add(new OthelloAction(this.move, i, (byte)(dimension - j - 1)));
 				mask = (short)(mask << 2);
 			}
 		}
