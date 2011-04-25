@@ -1,6 +1,8 @@
 package ticTacToe;
 import gamePlayer.Game;
 import gamePlayer.MiniMaxDecider;
+import gamePlayer.algorithms.NegaMaxDecider;
+import gamePlayer.algorithms.NegaScoutDecider;
 
 public class TicTacToe {
 	
@@ -12,8 +14,8 @@ public class TicTacToe {
 		int dimension = 3;
 		// Run the game and time it
 		long totalTime = 0;
-		for (int i = 0; i < 3; i++) {
-			Game game = new Game(new MiniMaxDecider(true, 6),
+		for (int i = 0; i < 1; i++) {
+			Game game = new Game(new NegaMaxDecider(true, 4),
 								 new MiniMaxDecider(false, 6),
 								 new TicTacToeState(dimension));
 			final long startTime = System.nanoTime();

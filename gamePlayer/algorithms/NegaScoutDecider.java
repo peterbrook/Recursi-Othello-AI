@@ -13,16 +13,17 @@ import gamePlayer.InvalidActionException;
 import gamePlayer.State;
 import gamePlayer.State.Status;
 
-public class NegaMaxDecider implements Decider {
+public class NegaScoutDecider implements Decider {
 
 	// Are we maximizing or minimizing?
 	private boolean maximize;
 	// The depth to which we should analyze the search space
 	private int depth;
+	// HashMap to avoid recalculating States
+	private Map<State, Float> computedStates;
 	private int maxdepth;
 	// Used to generate a graph of the search space for each turn in SVG format
 	private static final boolean DEBUG = true;
-	private static final boolean DEBUG_PRINT = false;
 
 	/**
 	 * Initialize this MiniMaxDecider.
@@ -33,11 +34,13 @@ public class NegaMaxDecider implements Decider {
 	 * @param depth
 	 *            The depth to which we should analyze the search space.
 	 */
-	public NegaMaxDecider(boolean maximize, int depth) {
+	public NegaScoutDecider(boolean maximize, int depth) {
 		this.maximize = maximize;
 		this.depth = depth;
+		computedStates = new HashMap<State, Float>();
 	}
 
+	@Override
 	public Action decide(State state) {
 		if (DEBUG)
 			GraphVizPrinter.setState(state);
@@ -47,20 +50,15 @@ public class NegaMaxDecider implements Decider {
 		List<Action> bestActions = new ArrayList<Action>();
 		// Iterate!
 		int flag = maximize ? 1 : -1;
-		float alpha = Float.NEGATIVE_INFINITY;
-		float beta = Float.POSITIVE_INFINITY;
 		for (Action action : state.getActions()) {
 			try {
 				// Algorithm!
 				State newState = action.applyTo(state);
-				System.out.println("Root: Before calling NegaMax alpha:"+alpha+" beta:"+beta);
-				float newValue = -NegaMax(newState, 1, -beta, -alpha, -flag);
-				System.out.println("Root: got value:"+newValue);
+				float newValue = -NegaScout(newState, 1,
+						Float.NEGATIVE_INFINITY,
+						Float.POSITIVE_INFINITY);
 				if (DEBUG)
 					GraphVizPrinter.setRelation(newState, newValue, state);
-
-				alpha = Math.max(alpha, newValue);
-				System.out.println("Root: new alpha:"+alpha);
 				// Better candidates?
 				if (flag * newValue > flag * value) {
 					value = newValue;
@@ -74,7 +72,7 @@ public class NegaMaxDecider implements Decider {
 			}
 		}
 		// Pick one of the best randomly
-		// Collections.shuffle(bestActions);
+		//Collections.shuffle(bestActions);
 		// Graph?
 		try {
 			GraphVizPrinter.setDecision(bestActions.get(0).applyTo(state));
@@ -86,36 +84,36 @@ public class NegaMaxDecider implements Decider {
 		return bestActions.get(0);
 	}
 
-	private void indentedPrint(int depth, String s) {
-		for (int i=0; i < depth; i++) {
-			System.out.print("\t");
-		}
-		System.out.println(s);
-	}
-	private float NegaMax(State s, int depth, float alpha, float beta, int color)
+	private float NegaScout(State s, int depth, float alpha, float beta)
 			throws InvalidActionException {
-		if (DEBUG)
-			GraphVizPrinter.setState(s);
+		// Specify us
+		if (DEBUG) GraphVizPrinter.setState(s);
+
 		if (s.getStatus() != Status.Ongoing || depth == this.depth) {
-			indentedPrint(depth, "Fast returning at leaf. H:"+s.heuristic()+" c:"+color+" ret:"+color*s.heuristic());
-			return color * s.heuristic();
+			return s.heuristic();
 		}
-		indentedPrint(depth, "Starting child node examination. alpha: "+alpha+" beta:"+beta);
-		for (Action a : s.getActions()) {
-			State childState = a.applyTo(s);
-			indentedPrint(depth, "Examining child from action:"+a);
-			float nmValue = -NegaMax(childState, depth + 1, -beta, -alpha,
-					-color);
-			indentedPrint(depth, "Got value:"+nmValue);
-			if (DEBUG)
-				GraphVizPrinter.setRelation(childState, nmValue, s);
-			indentedPrint(depth, "Old alpha:"+alpha);
-			alpha = Math.max(alpha, nmValue);
-			indentedPrint(depth, "New alpha:"+alpha);
-			if (alpha >= beta) {
-				indentedPrint(depth, "A-B Pruned. Alpha:"+alpha+" Beta:"+beta);
-				break;
+		float a, b, t;
+		int i;
+
+		List<Action> actions = s.getActions();
+		int w = actions.size();
+
+		//a = alpha;
+		b = beta;
+		for (i = 0; i < w; i++) {
+			State successor = actions.get(i).applyTo(s);
+			a = -NegaScout(successor, depth + 1, -b, -alpha);
+			if (alpha < a && a < beta && i > 0) {
+				a = -NegaScout(successor, depth + 1, -beta, -alpha); /* re-search */
 			}
+			alpha = Math.max(alpha, a);
+			
+			if (DEBUG) GraphVizPrinter.setRelation(successor, a, s);
+			
+			if (alpha >= beta) {
+				return alpha;
+			}
+			b = alpha + 1;
 		}
 		return alpha;
 	}

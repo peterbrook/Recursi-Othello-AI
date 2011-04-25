@@ -17,9 +17,9 @@ public class Dilemma {
 		for (int i = 0; i < 1; i++) {
 			
 			//int[][] board = {{1,1},{8,2}};
-			int[][] board = {{1,2,3,4},{1,2,3,4},{1,2,3,4},{4,3,2,1}};
+			int[][] board = {{2,1,1 ,1},{3,5,1,1},{3,2,3,4},{4,3,2,1}};
 			Game game = new Game(new NegaMaxDecider(true, 6),
-								 new NegaMaxDecider(false, 6),
+								 new MiniMaxDecider(false, 6),
 								 new DilemmaState(board));
 			final long startTime = System.nanoTime();
 			try {
