@@ -1,6 +1,6 @@
 package othello;
 
-import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.List;
 import java.util.LinkedList;
 
@@ -70,6 +70,18 @@ public class OthelloState implements State {
 	private static byte getSpotOnLine(short line, byte index) {
 		if (index >= dimension) return 1;
 		return (byte)((line >> (index * 2)) & 3);
+	}
+
+	/**
+	 * Returns a spot represented as a char.
+	 * @param x The x-coordinate of the spot we want to retrieve.
+	 * @param y The y-coordinate of the spot we want to retrieve.
+	 * @return ' ' if the spot is empty; 'O' if the spot has player 1; 'X' if the spot has player 2.
+	 */
+	public char getSpotAsChar(byte x, byte y) {
+		byte spot = getSpotOnLine(hBoard[x], y);
+		if (spot == 0) return ' ';
+		return getSpotOnLine(hBoard[x], y) == 2 ? 'O' : 'X';
 	}
 	
 	/**
@@ -550,10 +562,6 @@ public class OthelloState implements State {
 		return state;
 	}
 	
-	public char at(int x,int y) {
-		return lineToString(hBoard[x]).charAt(y);
-	}
-	
 	/**
 	 * Returns a String representation of this OthelloState.
 	 * @return a String representation of this OthelloState.
@@ -575,26 +583,28 @@ public class OthelloState implements State {
 		}
 		return builder.toString();
 	}
-
 	
+	/**
+	 * Returns an integer hash code for this OthelloState.
+	 * If two objects are equal, then they must have the same hash code.
+	 * @return An integer hash code for this OthelloState.
+	 */
 	@Override
 	public int hashCode() {
-		int hc = 0;
-		for (int i=0; i < dimension; i++) {
-			hc += this.hBoard[i]<<(16*i);
-		}
-		return hc;
+		return hBoard[3] << 16 | hBoard[4];
 	}
 	
+	/**
+	 * Checks the equivalence between this OthelloState and another Object.
+	 * Will screw up if passed anything that isn't an OthelloState.
+	 * @param other The Object to compare this one with.
+	 * @return True if equal; false otherwise.
+	 */
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if ((obj == null) || (obj.getClass() != this.getClass())) {
-			return false;
-		}
-		OthelloState other = (OthelloState) obj;
-		return other.hashCode() == this.hashCode();
+	public boolean equals(Object other) {
+		OthelloState state = (OthelloState)other; 
+		if (this.move != state.move) return false;
+		return Arrays.equals(this.hBoard, state.hBoard);
 	}
+	
 }
