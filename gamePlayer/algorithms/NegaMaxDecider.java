@@ -164,7 +164,7 @@ public class NegaMaxDecider implements Decider {
 			indentedPrint(depth, "Old alpha:"+alpha);
 			alpha = Math.max(alpha, nmValue);
 			indentedPrint(depth, "New alpha:"+alpha);
-			if (alpha >= beta) {
+			if (alpha > beta) {
 				indentedPrint(depth, "A-B Pruned. Alpha:"+alpha+" Beta:"+beta);
 				break;
 			}

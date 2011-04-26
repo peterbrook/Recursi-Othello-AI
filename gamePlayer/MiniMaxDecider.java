@@ -139,7 +139,8 @@ public class MiniMaxDecider implements Decider {
 	 * @return The value we were passed.
 	 */
 	private float finalize(State state, float value) {
-		computedStates.put(state, value);
+		// THIS IS BROKEN DO NOT USE
+		//computedStates.put(state, value);
 		return value;
 	}
 	

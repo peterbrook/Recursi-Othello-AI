@@ -31,6 +31,10 @@ public class Game {
 		this.turn = true; // First person's turn
 	}
 	
+	public void setStartingPlayer(boolean playerOne) {
+		this.turn = playerOne;
+	}
+	
 	/**
 	 * Make a single move.
 	 */
@@ -60,6 +64,14 @@ public class Game {
 		//this.move();
 		System.out.print(this.currentState);
 		System.out.println("Game result: " + this.currentState.getStatus() + ".");
+	}
+	
+	/**
+	 * Get the current status of the game
+	 * 
+	 */
+	public Status getStatus() {
+		return this.currentState.getStatus();
 	}
 	
 }

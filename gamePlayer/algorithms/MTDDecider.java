@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class MTDDecider implements Decider {
 	public enum EntryType {
@@ -22,15 +23,16 @@ public class MTDDecider implements Decider {
 		EntryType type;
 		int value;
 		int depth;
+		//int color;
 		
 	}
 
 	private static final int LOSE = -100000;
 	private static final int WIN = 100000;
 	
-	private static final int maxdepth = Integer.MAX_VALUE;
+	private int maxdepth;
 
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	
 	// Time we have to compute a move in seconds
 	private int searchTime; 
@@ -39,14 +41,17 @@ public class MTDDecider implements Decider {
 	private long startTimeMillis;
 
 	private boolean maximizer;
+	
+	private Random rnd = new Random(101);
 
 	private Map<State, SearchNode> transpositionTable;
 
 	private int checkedNodes;
 
-	public MTDDecider(boolean maximizer, int searchTimeSec) {
+	public MTDDecider(boolean maximizer, int searchTimeSec, int maxdepth) {
 		searchTime = searchTimeSec;
 		this.maximizer = maximizer;
+		this.maxdepth = maxdepth;
 	}
 	
 	@Override
@@ -61,7 +66,7 @@ public class MTDDecider implements Decider {
 		List<ActionValuePair> actions = buildAVPList(root.getActions());
 		checkedNodes = 0;
 		int d;
-		for (d=2; d < 3; d++) {
+		for (d=1; d < maxdepth; d++) {
 			for (ActionValuePair a: actions) {
 				State n;
 				try {
@@ -75,8 +80,11 @@ public class MTDDecider implements Decider {
 			}
 			
 			//TODO: do we need to toggle reverseOrder depending on whether we maximize?
-			Collections.sort(actions, Collections.reverseOrder());
-			
+			//if (maximizer)
+				Collections.sort(actions, Collections.reverseOrder());
+			/*else
+				Collections.sort(actions);
+				*/
 			if (times_up()) {
 				break;
 			}
@@ -96,13 +104,15 @@ public class MTDDecider implements Decider {
 		int upperbound = WIN;
 		int lowerbound = LOSE;
 		
+		int flag = maximizer ? 1 : -1;
+		
 		while (lowerbound < upperbound) {
 			if (g == lowerbound) {
 				beta = g+1;
 			} else {
 				beta = g;
 			}
-			g = AlphaBetaWithMemory(root, beta-1, beta, depth, 1);
+			g = -AlphaBetaWithMemory(root, beta-1, beta, depth, -flag);
 			if (g < beta) {
 				upperbound = g;
 			} else {
@@ -131,8 +141,10 @@ public class MTDDecider implements Decider {
 		if (DEBUG) GraphVizPrinter.setState(state);
 		// Has this state already been computed?
 		SearchNode node = transpositionTable.get(state);
-		if (node != null && node.depth >= depth) {
+		// TODO: shoot myself. This code wasn't working because I had node.depth >= depth rather than >
+		if (node != null && node.depth > depth) {
 			if (DEBUG) GraphVizPrinter.setCached(state);
+			/* this seems not needed if (node.color != color) node.value = -node.value; */
 			switch (node.type) {
 			case EXACT_VALUE:
 				return node.value;
@@ -147,7 +159,7 @@ public class MTDDecider implements Decider {
 		// Is this state/our search done?
 		if (depth == 0 || state.getStatus() != Status.Ongoing) {
 			int value = color*Math.max(Math.min((int)state.heuristic(),WIN),LOSE);
-			return saveAndReturnState(state, alpha, beta, depth, value);
+			return saveAndReturnState(state, alpha, beta, depth, value, color);
 		}
 		
 		int bestValue = LOSE;
@@ -167,11 +179,11 @@ public class MTDDecider implements Decider {
 			if (bestValue > alpha) alpha = bestValue;
 			if (bestValue >= beta) break;
 		}
-		return saveAndReturnState(state, alpha, beta, depth, bestValue);
+		return saveAndReturnState(state, alpha, beta, depth, bestValue, color);
 	}
 
 	private int saveAndReturnState(State state, int alpha, int beta,
-			int depth, int value) {
+			int depth, int value, int color) {
 		// Store so we don't have to compute it again.
 		SearchNode saveNode = new SearchNode();
 		if (value <= alpha) { 
@@ -184,7 +196,8 @@ public class MTDDecider implements Decider {
 		
 		saveNode.depth = depth;
 		saveNode.value = value;
-		//transpositionTable.put(state, saveNode);
+		//saveNode.color = -color;
+		transpositionTable.put(state, saveNode);
 		
 		return value;
 	}
@@ -207,6 +220,8 @@ public class MTDDecider implements Decider {
 	
 	/**
 	 * Returns a random action from among the best actions in the given list
+	 * NOTE: this assumes the list is already sorted with the best move first,
+	 * and that the list is nonempty!
 	 * @param actions The actions to examine
 	 * @return The selected action
 	 */
@@ -220,8 +235,10 @@ public class MTDDecider implements Decider {
 			bestActions.add(avp.action);
 		}
 		
-		//Collections.shuffle(bestActions);
-		
+		Collections.shuffle(bestActions);
+		if (bestV == LOSE) {
+			System.out.println("I LOST :(");
+		}
 		return bestActions.get(0);
 	}
 }
