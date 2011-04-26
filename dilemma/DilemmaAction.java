@@ -28,7 +28,7 @@ public class DilemmaAction implements Action<DilemmaState> {
 	@Override
 	public DilemmaState applyTo(DilemmaState input) throws InvalidActionException {
 		DilemmaState next = (DilemmaState)input.clone();
-		
+		next.parent = input;
 		// left side
 		for (int i=next.t; i < next.b; i++) {
 			for (int j=next.l; j < next.r; j++) {
