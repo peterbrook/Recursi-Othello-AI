@@ -27,6 +27,8 @@ public class TicTacToeState implements State {
 	 */
 	private byte[][] board;
 	
+	TicTacToeState parent;
+	
 	/**
 	 * Instantiate this TicTacToeState.
 	 * @param size The dimension of the board.
@@ -228,6 +230,11 @@ public class TicTacToeState implements State {
 			builder.append("\n");
 		}
 		return builder.toString();
+	}
+	
+	@Override
+	public State getParentState() {
+		return parent;
 	}
 	
 }
