@@ -15,11 +15,21 @@ import gamePlayer.State.Status;
 
 public class NegaMaxDecider implements Decider {
 
+	private class SearchNode {
+		short depth;
+		float h;
+		float alpha,beta;
+	}
+	
 	// Are we maximizing or minimizing?
 	private boolean maximize;
 	// The depth to which we should analyze the search space
 	private int depth;
 	private int maxdepth;
+	private long leafsHit;
+	private Map<State,SearchNode> stateCache;
+	private int cacheHits;
+	private int cacheMisses;
 	// Used to generate a graph of the search space for each turn in SVG format
 	private static final boolean DEBUG = false;
 	private static final boolean DEBUG_PRINT = false;
@@ -39,6 +49,8 @@ public class NegaMaxDecider implements Decider {
 	}
 
 	public Action decide(State state) {
+		leafsHit = 0; cacheHits = 0; cacheMisses=0;
+		stateCache = new HashMap<State, SearchNode>(1000000);
 		if (DEBUG)
 			GraphVizPrinter.setState(state);
 		// Choose randomly between equally good options
@@ -83,6 +95,7 @@ public class NegaMaxDecider implements Decider {
 		}
 		if (DEBUG)
 			GraphVizPrinter.printGraphToFile();
+		System.out.println("Hit "+leafsHit+" leaves. C-Misses:"+cacheMisses+" C-hits:"+cacheHits);
 		return bestActions.get(0);
 	}
 
@@ -94,10 +107,19 @@ public class NegaMaxDecider implements Decider {
 	}
 	private float NegaMax(State s, int depth, float alpha, float beta, int color)
 			throws InvalidActionException {
+		if (stateCache.containsKey(s)) {
+			SearchNode n = stateCache.get(s);
+			cacheHits++;
+			if (n.depth >= depth) {
+				return color * n.h;
+			}
+		}
+		cacheMisses++;
 		if (DEBUG)
 			GraphVizPrinter.setState(s);
 		if (s.getStatus() != Status.Ongoing || depth == this.depth) {
 			indentedPrint(depth, "Fast returning at leaf. H:"+s.heuristic()+" c:"+color+" ret:"+color*s.heuristic());
+			leafsHit++;
 			return color * s.heuristic();
 		}
 		indentedPrint(depth, "Starting child node examination. alpha: "+alpha+" beta:"+beta);
@@ -117,6 +139,12 @@ public class NegaMaxDecider implements Decider {
 				break;
 			}
 		}
+		SearchNode sn = new SearchNode();
+		sn.h = alpha;
+		sn.alpha = alpha;
+		sn.beta = beta;
+		sn.depth = (short)depth;
+		stateCache.put(s, sn);
 		return alpha;
 	}
 

@@ -15,7 +15,7 @@ public class TicTacToe {
 		// Run the game and time it
 		long totalTime = 0;
 		for (int i = 0; i < 1; i++) {
-			Game game = new Game(new NegaMaxDecider(true, 4),
+			Game game = new Game(new NegaMaxDecider(true, 10),
 								 new MiniMaxDecider(false, 6),
 								 new TicTacToeState(dimension));
 			final long startTime = System.nanoTime();

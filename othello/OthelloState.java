@@ -1,5 +1,6 @@
 package othello;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.LinkedList;
 
@@ -476,10 +477,31 @@ public class OthelloState implements State {
 		return differential;
 	}
 	
+	private float cornerDifferential() {
+		float diff = 0;
+		if ((hBoard[0] & 0x4) != 0) {
+			diff -= 2*(hBoard[0] & 0x4);
+			diff += 5;
+		}
+		if (((hBoard[0] & 0xC000)>>14) != 0) {
+			diff -= 2*((hBoard[0] & 0xC000)>>14);
+			diff += 5;
+		}
+		if ((hBoard[7] & 0x4) != 0) {
+			diff -= 2*(hBoard[7] & 0x4);
+			diff += 5;
+		}
+		if (((hBoard[7] & 0xC000)>>14) != 0) {
+			diff -= 2*((hBoard[7] & 0xC000)>>14);
+			diff += 5;
+		}
+		return diff;
+	}
+	
 	/** {@inheritDoc} */
 	@Override
 	public float heuristic() {
-		return this.pieceDifferential() + this.moveDifferential();
+		return this.pieceDifferential() + 3*this.moveDifferential() + 50*this.cornerDifferential();
 	}
 	
 	/** {@inheritDoc} */
@@ -533,6 +555,10 @@ public class OthelloState implements State {
 		return state;
 	}
 	
+	public char at(int x,int y) {
+		return lineToString(hBoard[x]).charAt(y);
+	}
+	
 	/**
 	 * Returns a String representation of this OthelloState.
 	 * @return a String representation of this OthelloState.
@@ -555,4 +581,25 @@ public class OthelloState implements State {
 		return builder.toString();
 	}
 
+	
+	@Override
+	public int hashCode() {
+		int hc = 0;
+		for (int i=0; i < dimension; i++) {
+			hc += this.hBoard[i]<<(16*i);
+		}
+		return hc;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if ((obj == null) || (obj.getClass() != this.getClass())) {
+			return false;
+		}
+		OthelloState other = (OthelloState) obj;
+		return other.hashCode() == this.hashCode();
+	}
 }
