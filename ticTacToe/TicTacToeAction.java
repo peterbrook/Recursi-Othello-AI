@@ -34,6 +34,7 @@ public class TicTacToeAction implements Action<TicTacToeState> {
 	@Override
 	public TicTacToeState applyTo(TicTacToeState input) throws InvalidActionException {
 		TicTacToeState output = (TicTacToeState)input.clone();
+		output.parent = input;
 		if (output.getValue(this.x, this.y) != 0) throw new InvalidActionException();
 		output.executeMove(this.player ? (byte)1 : (byte)-1, this.x, this.y);
 		return output;

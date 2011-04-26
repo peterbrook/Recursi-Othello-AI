@@ -20,6 +20,8 @@ public class DilemmaState implements State {
 	int size;
 	int l,r,t,b;
 	int nextPlayer;
+
+	DilemmaState parent;
 	
 	/**
 	 * Instantiate this TicTacToeState.
@@ -180,6 +182,11 @@ public class DilemmaState implements State {
 			sb.append("\n");
 		}
 		return sb.toString();
+	}
+	
+	@Override
+	public State getParentState() {
+		return parent;
 	}
 	
 }
