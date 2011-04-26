@@ -42,5 +42,11 @@ public interface State extends Comparable<State>, Cloneable {
 	 * @return The current Status.
 	 */
 	public Status getStatus();
+	
+	/**
+	 * Get the parent State of this State.
+	 * @return This State's parent State. 
+	 */
+	public State getParentState();
 
 }

@@ -203,6 +203,8 @@ public class OthelloState implements State {
 	private short[] dBoard1 /* board 2 */, dBoard2; /* board 3 */
 	// Bit-boards representing valid moves
 	private short[] p1MoveBoard, p2MoveBoard;
+	// Our parent
+	private OthelloState parent;
 	
 	/**
 	 * Initialize this child OthelloState.
@@ -436,6 +438,7 @@ public class OthelloState implements State {
 	 */
 	public OthelloState childOnMove(byte x, byte y) {
 		OthelloState state = (OthelloState)this.clone();
+		state.parent = this;
 		// Pass?
 		if (x < 0) {
 			state.p1MoveBoard = this.p1MoveBoard.clone();
@@ -508,6 +511,12 @@ public class OthelloState implements State {
 		float differential = this.pieceDifferential();
 		if (differential == 0) return Status.Draw;
 		return differential > 0 ? Status.PlayerOneWon : Status.PlayerTwoWon;
+	}
+	
+	/** {@inheritDoc} */
+	@Override
+	public State getParentState() {
+		return this.parent;
 	}
 	
 	/**
