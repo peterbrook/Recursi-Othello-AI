@@ -298,8 +298,7 @@ public class OthelloState implements State {
 	 */
 	private static byte getIndex(byte board, byte x, byte y) {
 		// Only boards 1 and 2 care about which is used as the index
-		if (board == 0) return y;
-		return x;
+		return board == 0 ? y : x;
 	}
 	
 	/**
@@ -477,23 +476,19 @@ public class OthelloState implements State {
 		return differential;
 	}
 	
+	/**
+	 * Get the difference between the number of corners player 1 and player 2 occupy.
+	 * @return The aforementioned difference.
+	 */
 	private float cornerDifferential() {
 		float diff = 0;
-		if ((hBoard[0] & 0x4) != 0) {
-			diff -= 2*(hBoard[0] & 0x4);
-			diff += 5;
-		}
-		if (((hBoard[0] & 0xC000)>>14) != 0) {
-			diff -= 2*((hBoard[0] & 0xC000)>>14);
-			diff += 5;
-		}
-		if ((hBoard[7] & 0x4) != 0) {
-			diff -= 2*(hBoard[7] & 0x4);
-			diff += 5;
-		}
-		if (((hBoard[7] & 0xC000)>>14) != 0) {
-			diff -= 2*((hBoard[7] & 0xC000)>>14);
-			diff += 5;
+		short[] corners = new short[4];
+		corners[0] = getSpotOnLine(hBoard[0], (byte)0);
+		corners[1] = getSpotOnLine(hBoard[0], (byte)(dimension - 1));
+		corners[2] = getSpotOnLine(hBoard[dimension - 1], (byte)0);
+		corners[3] = getSpotOnLine(hBoard[dimension - 1], (byte)(dimension - 1));
+		for (short corner : corners) {
+			if (corner != 0) diff += corner == 2 ? 1 : -1;
 		}
 		return diff;
 	}
