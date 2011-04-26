@@ -1,7 +1,7 @@
 package ticTacToe;
 import gamePlayer.Game;
 import gamePlayer.MiniMaxDecider;
-import gamePlayer.algorithms.ABWithMemoryDecider;
+import gamePlayer.algorithms.MTDDecider;
 
 public class TicTacToe {
 	
@@ -14,7 +14,7 @@ public class TicTacToe {
 		// Run the game and time it
 		long totalTime = 0;
 		for (int i = 0; i < 1; i++) {
-			Game game = new Game(new ABWithMemoryDecider(true, 100),
+			Game game = new Game(new MTDDecider(true, 6),
 								 new MiniMaxDecider(false, 6),
 								 new TicTacToeState(dimension));
 			final long startTime = System.nanoTime();

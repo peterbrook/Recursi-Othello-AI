@@ -2,7 +2,7 @@ package dilemma;
 
 import gamePlayer.Game;
 import gamePlayer.MiniMaxDecider;
-import gamePlayer.algorithms.ABWithMemoryDecider;
+import gamePlayer.algorithms.MTDDecider;
 
 public class Dilemma {
 
@@ -20,7 +20,7 @@ public class Dilemma {
 		int[][] board = { { 2, 1, 1, 1 }, { 3, 5, 1, 1 }, { 3, 2, 3, 4 },
 				{ 4, 3, 2, 1 } };
 		Game game = new Game(
-				new ABWithMemoryDecider(true, 6), 
+				new MTDDecider(true, 120000), 
 				new MiniMaxDecider(false, 6), 
 				new DilemmaState(board));
 		final long startTime = System.nanoTime();

@@ -3,6 +3,7 @@ package gamePlayer.algorithms;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -48,6 +49,42 @@ public class NegaMaxDecider implements Decider {
 		this.depth = depth;
 	}
 
+	/**
+	 * Returns a random action from among the best actions in the given list
+	 * @param actions The actions to examine
+	 * @return The selected action
+	 */
+	private Action getRandomBestAction(List<ActionValuePair> actions) {
+		List<Action> bestActions = new LinkedList<Action>();
+		
+		float bestV = actions.get(0).value;
+		for (ActionValuePair avp: actions) {
+			if (avp.value != bestV) break;
+			
+			bestActions.add(avp.action);
+		}
+		
+		Collections.shuffle(bestActions);
+		
+		return bestActions.get(0);
+	}
+	
+	/**
+	 * Helper to create a list of ActionValuePairs with value of 0 from a list of actions 
+	 * @param actions The actions to convert
+	 * @return A list of actionvaluepairs
+	 */
+	private List<ActionValuePair> buildAVPList(List<Action> actions) {
+		List<ActionValuePair> res = new ArrayList<ActionValuePair>();
+		
+		for (Action a: actions) {
+			ActionValuePair p = new ActionValuePair(a, 0);
+			res.add(p);
+		}
+		
+		return res;
+	}
+	
 	public Action decide(State state) {
 		leafsHit = 0; cacheHits = 0; cacheMisses=0;
 		stateCache = new HashMap<State, SearchNode>(1000000);
@@ -56,47 +93,40 @@ public class NegaMaxDecider implements Decider {
 		// Choose randomly between equally good options
 		float value = maximize ? Float.NEGATIVE_INFINITY
 				: Float.POSITIVE_INFINITY;
-		List<Action> bestActions = new ArrayList<Action>();
 		// Iterate!
 		int flag = maximize ? 1 : -1;
 		float alpha = Float.NEGATIVE_INFINITY;
 		float beta = Float.POSITIVE_INFINITY;
-		for (Action action : state.getActions()) {
+		List<ActionValuePair> actions = buildAVPList(state.getActions());
+		for (ActionValuePair a : actions) {
 			try {
 				// Algorithm!
-				State newState = action.applyTo(state);
-				//System.out.println("Root: Before calling NegaMax alpha:"+alpha+" beta:"+beta);
+				State newState = a.action.applyTo(state);
 				float newValue = -NegaMax(newState, 1, -beta, -alpha, -flag);
-				//System.out.println("Root: got value:"+newValue);
 				if (DEBUG)
 					GraphVizPrinter.setRelation(newState, newValue, state);
-
-				alpha = Math.max(alpha, newValue);
-				//System.out.println("Root: new alpha:"+alpha);
-				// Better candidates?
-				if (flag * newValue > flag * value) {
-					value = newValue;
-					bestActions.clear();
-				}
-				// Add it to the list of candidates?
-				if (flag * newValue >= flag * value)
-					bestActions.add(action);
+				a.value = newValue;
+				if (maximize)
+					alpha = Math.max(alpha, newValue);
+				else
+					beta = Math.min(beta, newValue);
 			} catch (InvalidActionException e) {
 				throw new RuntimeException("Invalid action!");
 			}
 		}
-		// Pick one of the best randomly
-		// Collections.shuffle(bestActions);
+		
+		Collections.sort(actions, Collections.reverseOrder());
+		
 		// Graph?
 		try {
-			GraphVizPrinter.setDecision(bestActions.get(0).applyTo(state));
+			GraphVizPrinter.setDecision(actions.get(0).action.applyTo(state));
 		} catch (InvalidActionException e) {
 			throw new RuntimeException("Invalid action!");
 		}
 		if (DEBUG)
 			GraphVizPrinter.printGraphToFile();
 		System.out.println("Hit "+leafsHit+" leaves. C-Misses:"+cacheMisses+" C-hits:"+cacheHits);
-		return bestActions.get(0);
+		return getRandomBestAction(actions);
 	}
 
 	private void indentedPrint(int depth, String s) {
@@ -144,7 +174,7 @@ public class NegaMaxDecider implements Decider {
 		sn.alpha = alpha;
 		sn.beta = beta;
 		sn.depth = (short)depth;
-		stateCache.put(s, sn);
+		//stateCache.put(s, sn);
 		return alpha;
 	}
 

@@ -57,6 +57,7 @@ public class Game {
 	 */
 	public void run() {
 		while (this.currentState.getStatus() == Status.Ongoing) this.move();
+		//this.move();
 		System.out.print(this.currentState);
 		System.out.println("Game result: " + this.currentState.getStatus() + ".");
 	}

@@ -82,11 +82,12 @@ public class GraphVizPrinter {
 		gv.addln(gv.start_graph());
 	}
 	
-	private static int getId(State s) {
-		int id = s.hashCode();
+	private static String getId(State s) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(s.hashCode());
 		if (s.getParentState() != null) {
-			id+= s.getParentState().hashCode();
+			sb.append(s.getParentState().hashCode());
 		}
-		return id;
+		return sb.toString();
 	}
 }
