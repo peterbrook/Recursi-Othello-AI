@@ -18,6 +18,7 @@ public class GraphVizPrinter {
 	// What type should we save our files in?
 	public static String type = "svg";
 	
+	static int idx = 0;
 	/**
 	 * A static constructor to initialize GraphViz.
 	 */
@@ -30,8 +31,16 @@ public class GraphVizPrinter {
 	 * Add a State to the graph.
 	 * @param state The State to add. 
 	 */
-	public static void setState(State state) {
-		gv.addln(state.hashCode() + " [label=\"" + state.toString().replaceAll("\n", "\\\\n") + "\", shape=box, fontname=Courier];");
+	public static void setState(State s) {
+		gv.addln(getId(s)+ " [label=\"" + s.toString().replaceAll("\n", "\\\\n") + "\", shape=box, fontname=Courier];");
+	}
+	
+	/**
+	 * Add a State to the graph.
+	 * @param state The State to add. 
+	 */
+	public static void setCached(State s) {
+		gv.addln(getId(s) + " [style=filled,fillcolor=green];");
 	}
 	
 	/**
@@ -41,15 +50,16 @@ public class GraphVizPrinter {
 	 * @param daddy The parent State.
 	 */
 	public static void setRelation(State state, float value, State daddy) {
-		if (daddy != null) gv.addln(daddy.hashCode() + " -> " + state.hashCode() + " [label=\"" + value + "\"];");
+		if (daddy != null) gv.addln(getId(daddy) + " -> " + getId(state) + " [label=\"" + value + "\"];");
 	}
+	
 	
 	/**
 	 * Highlight the final decision as red for easy viewing.
 	 * @param state The final decision we settled on.
 	 */
 	public static void setDecision(State state) {
-		gv.addln(state.hashCode() + " [color=red];");
+		gv.addln(getId(state) + " [color=red];");
 	}
 	
 	/**
@@ -62,4 +72,21 @@ public class GraphVizPrinter {
 		gv.addln(gv.start_graph());
 	}
 	
+	/**
+	 * Finally print the current graph to a file.
+	 */
+	public static void printGraphToFileWDeepening(int d) {
+		gv.addln(gv.end_graph());
+		gv.writeGraphToFile( gv.getGraph( gv.getDotSource(), type ), new File("turn" + turn + "." + +d+"."+type) );
+		gv = new GraphViz();
+		gv.addln(gv.start_graph());
+	}
+	
+	private static int getId(State s) {
+		int id = s.hashCode();
+		if (s.getParentState() != null) {
+			id+= s.getParentState().hashCode();
+		}
+		return id;
+	}
 }
