@@ -10,6 +10,7 @@ import gamePlayer.State.Status;
  */
 public class Game {
 	
+	private static final boolean PRINT = false;
 	// The two players
 	private Decider playerOne;
 	private Decider playerTwo;
@@ -44,11 +45,11 @@ public class Game {
 		Action action = this.turn ? this.playerOne.decide(this.currentState) : 
 			this.playerTwo.decide(this.currentState);
 		// Print it to the trace
-		System.out.println(action);
+		if (PRINT) System.out.println(action);
 		// Try to apply it
 		try {
 			currentState = action.applyTo(currentState);
-			System.out.println(currentState);
+			if (PRINT) System.out.println(currentState);
 		} catch (InvalidActionException e) {
 			throw new RuntimeException("Invalid action!");
 		}
@@ -61,8 +62,8 @@ public class Game {
 	 */
 	public void run() {
 		while (this.currentState.getStatus() == Status.Ongoing) this.move();
-		//this.move();
-		System.out.print(this.currentState);
+		
+		//System.out.print(this.currentState);
 		System.out.println("Game result: " + this.currentState.getStatus() + ".");
 	}
 	

@@ -14,7 +14,7 @@ public class TicTacToe {
 		int dimension = 3;
 		// Run the game and time it
 		long totalTime = 0;
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 1; i++) {
 			TicTacToeState start = new TicTacToeState(dimension);
 			/*start.executeMove((byte)1, 0, 0);
 			start.executeMove((byte)-1, 1, 1);
@@ -22,8 +22,8 @@ public class TicTacToe {
 			start.executeMove((byte)-1, 1, 0);
 			start.executeMove((byte)1, 2, 0);
 			start.executeMove((byte)-1, 0, 2);*/
-			Game game = new Game(new MiniMaxDecider(true, 5),
-								 new MTDDecider(false, 5, 9),
+			Game game = new Game(new MTDDecider(true, 5, 7),
+								 new MTDDecider(false, 5, 7),
 								 start);
 			
 			final long startTime = System.nanoTime();

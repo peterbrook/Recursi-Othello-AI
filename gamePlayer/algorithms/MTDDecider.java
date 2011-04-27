@@ -19,6 +19,9 @@ public class MTDDecider implements Decider {
 	public enum EntryType {
 		EXACT_VALUE, LOWERBOUND, UPPERBOUND;
 	}
+	
+	private class OutOfTimeException extends Exception {}
+	
 	private class SearchNode {	
 		EntryType type;
 		int value;
@@ -34,7 +37,7 @@ public class MTDDecider implements Decider {
 
 	private static final boolean DEBUG = false;
 	
-	// Time we have to compute a move in seconds
+	// Time we have to compute a move in milliseconds
 	private int searchTime; 
 	
 	// Time we have left to search
@@ -47,11 +50,17 @@ public class MTDDecider implements Decider {
 	private Map<State, SearchNode> transpositionTable;
 
 	private int checkedNodes;
+	private boolean useAltHeuristic;
 
 	public MTDDecider(boolean maximizer, int searchTimeSec, int maxdepth) {
-		searchTime = searchTimeSec;
+		this(maximizer, searchTimeSec, maxdepth, false);
+	}
+	
+	public MTDDecider(boolean maximizer, int searchTimeMSec, int maxdepth, boolean useAltHeuristic) {
+		searchTime = searchTimeMSec;
 		this.maximizer = maximizer;
 		this.maxdepth = maxdepth;
+		this.useAltHeuristic = useAltHeuristic;
 	}
 	
 	@Override
@@ -72,10 +81,13 @@ public class MTDDecider implements Decider {
 				try {
 					n = a.action.applyTo(root);
 					if (DEBUG) GraphVizPrinter.setState(n);
-					a.value = MTDF(n, (int) a.value, d);
+					int value = MTDF(n, (int) a.value, d);
+					a.value = value;
 					if (DEBUG) GraphVizPrinter.setRelation(n, a.value, root);
 				} catch (InvalidActionException e) {
 					e.printStackTrace();
+				} catch (OutOfTimeException e) {
+					// Don't set a.value
 				}
 			}
 			
@@ -90,15 +102,15 @@ public class MTDDecider implements Decider {
 			}
 		}
 		if (DEBUG) GraphVizPrinter.printGraphToFile();
-		System.out.println("MTD got to depth "+d+" and checked "+checkedNodes+" nodes");
+		if (DEBUG) System.out.println("MTD got to depth "+d+" and checked "+checkedNodes+" nodes in "+(System.currentTimeMillis()-startTimeMillis)+"ms");
 		return getRandomBestAction(actions);
 	}
 	
 	private boolean times_up() {
-		return (System.currentTimeMillis() - startTimeMillis) > 1000*searchTime;
+		return (System.currentTimeMillis() - startTimeMillis) > searchTime;
 	}
 
-	private float MTDF(State root, int firstGuess, int depth) {
+	private int MTDF(State root, int firstGuess, int depth) throws OutOfTimeException {
 		int g = firstGuess;
 		int beta;
 		int upperbound = WIN;
@@ -132,9 +144,15 @@ public class MTDDecider implements Decider {
 	 * @param depth    The current depth we are at.
 	 * @param maximize Are we maximizing? If not, we are minimizing.
 	 * @return The best point count we can get on this branch of the state space to the specified depth.
+	 * @throws OutOfTimeException 
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private int AlphaBetaWithMemory(State state, int alpha, int beta, int depth, int color) {
+	private int AlphaBetaWithMemory(State state, int alpha, int beta, int depth, int color) throws OutOfTimeException {
+		
+		if (depth > 5) {
+			if (times_up()) throw new OutOfTimeException();
+		}
+		
 		// Note that we checked a new node
 		checkedNodes++;
 		// Specify us
@@ -158,26 +176,51 @@ public class MTDDecider implements Decider {
 		}
 		// Is this state/our search done?
 		if (depth == 0 || state.getStatus() != Status.Ongoing) {
-			int value = color*Math.max(Math.min((int)state.heuristic(),WIN),LOSE);
+			int h;
+			if (useAltHeuristic)
+				h = (int)state.heuristic2();
+			else
+				h = (int)state.heuristic();
+			int value = color*Math.max(Math.min(h,WIN),LOSE);
 			return saveAndReturnState(state, alpha, beta, depth, value, color);
 		}
 		
 		int bestValue = LOSE;
 		
-		List<Action> test = state.getActions();
-		for (Action action : test) {
-			// Check it. Is it better? If so, keep it.
-			int newValue;
-			try {
-				State childState = action.applyTo(state);
-				newValue = -AlphaBetaWithMemory(childState, -beta, -alpha, depth - 1, -color);
-				if (DEBUG) GraphVizPrinter.setRelation(childState, newValue, state);
-			} catch (InvalidActionException e) {
-				throw new RuntimeException("Invalid action!");
+		List<ActionValuePair> actions = buildAVPList(state.getActions());
+		
+		
+		// Partial move ordering. Check value up to depth D-3 and order by that
+		int[] depthsToSearch;
+		if (depth > 4) {
+			depthsToSearch = new int[2];
+			depthsToSearch[0] = depth - 3;
+			depthsToSearch[1] = depth;
+		}
+		else {
+			depthsToSearch = new int[1];
+			depthsToSearch[0] = depth;
+		}
+		
+		for (int i=0; i <depthsToSearch.length; i++) {
+			for (ActionValuePair a : actions) {
+				// Check it. Is it better? If so, keep it.
+				int newValue;
+				try {
+					State childState = a.action.applyTo(state);
+					newValue = -AlphaBetaWithMemory(childState, -beta, -alpha, depthsToSearch[i] - 1, -color);
+					a.value = newValue;
+					if (DEBUG) GraphVizPrinter.setRelation(childState, newValue, state);
+				} catch (InvalidActionException e) {
+					throw new RuntimeException("Invalid action!");
+				}
+				if (newValue > bestValue) bestValue = newValue;
+				if (bestValue > alpha) alpha = bestValue;
+				if (bestValue >= beta) break;
 			}
-			if (newValue > bestValue) bestValue = newValue;
-			if (bestValue > alpha) alpha = bestValue;
-			if (bestValue >= beta) break;
+		
+			Collections.sort(actions, Collections.reverseOrder());
+		
 		}
 		return saveAndReturnState(state, alpha, beta, depth, bestValue, color);
 	}
@@ -237,7 +280,9 @@ public class MTDDecider implements Decider {
 		
 		Collections.shuffle(bestActions);
 		if (bestV == LOSE) {
-			System.out.println("I LOST :(");
+			if (DEBUG) System.out.println("I LOST :(");
+		} else if (bestV == WIN) {
+			if (DEBUG) System.out.println("I WIN :)");
 		}
 		return bestActions.get(0);
 	}

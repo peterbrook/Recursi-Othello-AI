@@ -4,6 +4,7 @@ import gamePlayer.Action;
 import gamePlayer.Decider;
 import gamePlayer.InvalidActionException;
 import gamePlayer.State.Status;
+import gamePlayer.algorithms.MTDDecider;
 import gamePlayer.algorithms.NegaMaxDecider;
 
 import java.awt.BorderLayout;
@@ -61,16 +62,16 @@ class GamePanel extends JPanel implements MouseListener {
 		}
 		g.drawLine(0, OthelloGUI.Height, OthelloGUI.Width, OthelloGUI.Height);
 		System.out.println("Redrawing board\n"+board);
-		for (int i = 0; i < 8; i++)
-			for (int j = 0; j < 8; j++)
-				switch (board.at(j, i)) {
-				case '3':
+		for (byte i = 0; i < 8; i++)
+			for (byte j = 0; j < 8; j++)
+				switch (board.getSpotAsChar(j, i)) {
+				case 'X':
 					g.setColor(Color.white);
 					g.fillOval(1 + i * OthelloGUI.Square_L, 1 + j
 							* OthelloGUI.Square_L, OthelloGUI.Square_L - 1,
 							OthelloGUI.Square_L - 1);
 					break;
-				case '2':
+				case 'O':
 					g.setColor(Color.black);
 					g.fillOval(1 + i * OthelloGUI.Square_L, 1 + j
 							* OthelloGUI.Square_L, OthelloGUI.Square_L - 1,
@@ -92,9 +93,9 @@ class GamePanel extends JPanel implements MouseListener {
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		if (inputEnabled) {
-			int j = e.getX() / OthelloGUI.Square_L;
-			int i = e.getY() / OthelloGUI.Square_L;
-			if ((i < 8) && (j < 8) && (board.at(i, j) == '0')) {
+			byte j = (byte) (e.getX() / OthelloGUI.Square_L);
+			byte i = (byte) (e.getY() / OthelloGUI.Square_L);
+			if ((i < 8) && (j < 8) && (board.getSpotAsChar(i, j) == ' ')) {
 				try {
 					board = new OthelloAction(false, (byte)i, (byte)j).applyTo(board);
 					inputEnabled = false;
@@ -210,7 +211,7 @@ public class OthelloGUI2 extends JFrame {
 		OthelloState start = new OthelloState();
 		start.setStandardStartState();
 		
-		gamePanel = new GamePanel(new NegaMaxDecider(true, 10), new OthelloPlayer(false), start);
+		gamePanel = new GamePanel(new MTDDecider(true, 4, 200), new OthelloPlayer(false), start);
 		
 		
 		gamePanel.setMinimumSize(new Dimension(OthelloGUI.Width,
