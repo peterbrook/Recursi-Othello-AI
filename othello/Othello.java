@@ -15,8 +15,8 @@ public class Othello {
 		for (int i=0; i < 50; i++) {
 			OthelloState startState = new OthelloState();
 			startState.setStandardStartState();
-			Game g = new Game(new MTDDecider(true, 3, 500, true),
-					 new MTDDecider(false, 3, 500, false),
+			Game g = new Game(new MTDDecider(true, 50, 20, true),
+					 new MTDDecider(false, 50, 20, false),
 					 startState);
 			g.run();
 			if (g.getStatus() == Status.PlayerOneWon) p1++;
