@@ -1,3 +1,4 @@
+// NOTE: This is extra code, not a critical part of our Othello assignment
 package gamePlayer.algorithms;
 
 import java.util.ArrayList;

@@ -2,6 +2,8 @@ package ticTacToe;
 import java.util.LinkedList;
 import java.util.List;
 
+import sun.net.www.http.Hurryable;
+
 import gamePlayer.Action;
 import gamePlayer.State;
 
@@ -235,6 +237,11 @@ public class TicTacToeState implements State {
 	@Override
 	public State getParentState() {
 		return parent;
+	}
+
+	@Override
+	public float heuristic2() {
+		return heuristic();
 	}
 	
 }

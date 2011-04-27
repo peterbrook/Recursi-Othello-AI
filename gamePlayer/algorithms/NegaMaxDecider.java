@@ -1,3 +1,8 @@
+/*
+ * NOTE: We are not actually using this code, this is just another search algorithm that we wrote.
+ * Our latest implementation is in MTDDecider.java
+ */
+
 package gamePlayer.algorithms;
 
 import java.util.ArrayList;
@@ -36,7 +41,7 @@ public class NegaMaxDecider implements Decider {
 	private static final boolean DEBUG_PRINT = false;
 
 	/**
-	 * Initialize this MiniMaxDecider.
+	 * Initialize this NegaMaxDecider.
 	 * 
 	 * @param maximize
 	 *            Are we maximizing or minimizing on this turn? True if the

@@ -1,3 +1,4 @@
+// NOTE: This is extra code, not a critical part of our Othello assignment
 package dilemma;
 import java.util.LinkedList;
 import java.util.List;
@@ -6,9 +7,10 @@ import gamePlayer.Action;
 import gamePlayer.State;
 
 /**
- * This is a State of the game Tic Tac Toe.
+ * This is a State of the game Dilemma.
  * @author Ashoat Tevosyan
- * @since Mon April 18 2011
+ * @author Peter Brook
+ * @since Mon April 26 2011
  * @version CSE 473
  */
 public class DilemmaState implements State {
@@ -24,7 +26,7 @@ public class DilemmaState implements State {
 	DilemmaState parent;
 	
 	/**
-	 * Instantiate this TicTacToeState.
+	 * Instantiate this DilemmaState.
 	 * @param size The dimension of the board.
 	 */
 	public DilemmaState(int[][] board) {
@@ -187,6 +189,11 @@ public class DilemmaState implements State {
 	@Override
 	public State getParentState() {
 		return parent;
+	}
+
+	@Override
+	public float heuristic2() {
+		return heuristic();
 	}
 	
 }

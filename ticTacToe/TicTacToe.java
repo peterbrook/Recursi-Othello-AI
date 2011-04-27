@@ -1,8 +1,8 @@
 package ticTacToe;
 import gamePlayer.Game;
-import gamePlayer.MiniMaxDecider;
 import gamePlayer.State.Status;
 import gamePlayer.algorithms.MTDDecider;
+import gamePlayer.algorithms.MiniMaxDecider;
 
 public class TicTacToe {
 	

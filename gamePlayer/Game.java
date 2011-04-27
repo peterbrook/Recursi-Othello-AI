@@ -5,7 +5,8 @@ import gamePlayer.State.Status;
 /**
  * This class runs a turn-based deterministic game between two players.
  * @author Ashoat Tevosyan
- * @since Mon April 18 2011
+ * @author Peter Brook
+ * @since Mon April 26 2011
  * @version CSE 473
  */
 public class Game {
@@ -49,7 +50,9 @@ public class Game {
 		// Try to apply it
 		try {
 			currentState = action.applyTo(currentState);
-			if (PRINT) System.out.println(currentState);
+			//if (PRINT) System.out.println(currentState);
+			//System.out.println(currentState);
+			//System.out.println("Heuristic value: "+currentState.heuristic());
 		} catch (InvalidActionException e) {
 			throw new RuntimeException("Invalid action!");
 		}
@@ -62,8 +65,7 @@ public class Game {
 	 */
 	public void run() {
 		while (this.currentState.getStatus() == Status.Ongoing) this.move();
-		
-		//System.out.print(this.currentState);
+		System.out.print(this.currentState);
 		System.out.println("Game result: " + this.currentState.getStatus() + ".");
 	}
 	

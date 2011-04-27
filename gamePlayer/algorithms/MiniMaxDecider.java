@@ -1,5 +1,10 @@
-package gamePlayer;
+package gamePlayer.algorithms;
 
+import gamePlayer.Action;
+import gamePlayer.Decider;
+import gamePlayer.GraphVizPrinter;
+import gamePlayer.InvalidActionException;
+import gamePlayer.State;
 import gamePlayer.State.Status;
 
 import java.util.ArrayList;
@@ -12,7 +17,8 @@ import java.util.Map;
  * This class represents an AI Decider that uses a MiniMax algorithm.
  * We use alpha-beta pruning, but besides that we're pretty vanilla.
  * @author Ashoat Tevosyan
- * @since Mon April 18 2011
+ * @author Peter Brook 
+ * @since Mon April 28 2011
  * @version CSE 473
  */
 public class MiniMaxDecider implements Decider {

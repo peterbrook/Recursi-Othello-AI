@@ -1,8 +1,9 @@
+// NOTE: This is extra code, not a critical part of our Othello assignment
 package dilemma;
 
 import gamePlayer.Game;
-import gamePlayer.MiniMaxDecider;
 import gamePlayer.algorithms.MTDDecider;
+import gamePlayer.algorithms.MiniMaxDecider;
 
 public class Dilemma {
 
