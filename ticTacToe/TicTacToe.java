@@ -1,7 +1,8 @@
 package ticTacToe;
 import gamePlayer.Game;
 import gamePlayer.MiniMaxDecider;
-import gamePlayer.algorithms.ABWithMemoryDecider;
+import gamePlayer.State.Status;
+import gamePlayer.algorithms.MTDDecider;
 
 public class TicTacToe {
 	
@@ -14,14 +15,33 @@ public class TicTacToe {
 		// Run the game and time it
 		long totalTime = 0;
 		for (int i = 0; i < 1; i++) {
-			Game game = new Game(new ABWithMemoryDecider(true, 100),
-								 new MiniMaxDecider(false, 6),
-								 new TicTacToeState(dimension));
+			TicTacToeState start = new TicTacToeState(dimension);
+			/*start.executeMove((byte)1, 0, 0);
+			start.executeMove((byte)-1, 1, 1);
+			start.executeMove((byte)1, 0, 1);
+			start.executeMove((byte)-1, 1, 0);
+			start.executeMove((byte)1, 2, 0);
+			start.executeMove((byte)-1, 0, 2);*/
+			Game game = new Game(new MTDDecider(true, 5, 7),
+								 new MTDDecider(false, 5, 7),
+								 start);
+			
 			final long startTime = System.nanoTime();
 			try {
 				game.run();
 			} finally {
 				totalTime += System.nanoTime() - startTime;
+				switch (game.getStatus()) {
+				case Draw:
+					System.out.println("DRAW");
+					break;
+				case PlayerOneWon:
+					System.out.println("P1 WIN");
+					return;
+				case PlayerTwoWon:
+					System.out.println("P2 WIN");
+					return;
+				}
 			}
 		}
 		System.out.println("Took " + totalTime / 1000000000.0 + " seconds.");

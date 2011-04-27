@@ -508,7 +508,13 @@ public class OthelloState implements State {
 	/** {@inheritDoc} */
 	@Override
 	public float heuristic() {
-		return this.pieceDifferential() + 3*this.moveDifferential() + 50*this.cornerDifferential();
+		return this.pieceDifferential() + this.moveDifferential() + this.cornerDifferential();
+	}
+	
+	/** {@inheritDoc} */
+	@Override
+	public float heuristic2() {
+		return this.pieceDifferential() + 30*this.moveDifferential() + 50*this.cornerDifferential();
 	}
 	
 	/** {@inheritDoc} */

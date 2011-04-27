@@ -1,12 +1,17 @@
-package gamePlayer;
+package gamePlayer.algorithms;
 
+import gamePlayer.Action;
+import gamePlayer.Decider;
+import gamePlayer.GraphVizPrinter;
+import gamePlayer.InvalidActionException;
+import gamePlayer.State;
 import gamePlayer.State.Status;
+import gamePlayer.algorithms.ABWithMemoryDecider.SearchNode;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * This class represents an AI Decider that uses a MiniMax algorithm.
@@ -15,14 +20,21 @@ import java.util.Map;
  * @since Mon April 18 2011
  * @version CSE 473
  */
-public class MiniMaxDecider implements Decider {
+public class MiniMaxWithMemoryDecider implements Decider {
+	
+	private static final int MIN_VAL = -999;
+	private static final int MAX_VAL = 999;
+	
+	private class SearchNode {
+		float lowerbound = MIN_VAL, upperbound = MAX_VAL;
+	}
 	
 	// Are we maximizing or minimizing?
 	private boolean maximize;
 	// The depth to which we should analyze the search space
 	private int depth;
 	// HashMap to avoid recalculating States
-	private Map<State, Float> computedStates;
+	private HashMap<State, SearchNode> computedStates;
 	// Used to generate a graph of the search space for each turn in SVG format
 	private static final boolean DEBUG = false;
 	
@@ -31,10 +43,10 @@ public class MiniMaxDecider implements Decider {
 	 * @param maximize Are we maximizing or minimizing on this turn? True if the former.
 	 * @param depth    The depth to which we should analyze the search space.
 	 */
-	public MiniMaxDecider(boolean maximize, int depth) {
+	public MiniMaxWithMemoryDecider(boolean maximize, int depth) {
 		this.maximize = maximize;
 		this.depth = depth;
-		computedStates = new HashMap<State, Float>();
+		computedStates = new HashMap<State, SearchNode>();
 	}
 	
 	/**
@@ -98,12 +110,31 @@ public class MiniMaxDecider implements Decider {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public float miniMaxRecursor(State state, float alpha, float beta, int depth, boolean maximize) {
-		// Has this state already been computed?
-		if (computedStates.containsKey(state)) return computedStates.get(state);
 		// Specify us
 		if (DEBUG) GraphVizPrinter.setState(state);
+		// Has this state already been computed?
+		if (computedStates.containsKey(state)) {
+			if (DEBUG) GraphVizPrinter.setCached(state);
+			SearchNode node = computedStates.get(state);
+
+			if (node.lowerbound >= beta) return node.lowerbound;
+			if (node.upperbound <= alpha) return node.upperbound;
+			alpha = alpha > node.lowerbound ? alpha : node.lowerbound;
+			beta = beta < node.upperbound ? beta : node.upperbound;
+		}
 		// Is this state done?
-		if (state.getStatus() != Status.Ongoing) return finalize(state, state.heuristic());
+		if (state.getStatus() != Status.Ongoing) {
+			float value = state.heuristic();
+			// Store so we don't have to compute it again.
+			SearchNode node = new SearchNode();
+			if (value <= alpha) node.upperbound = value;
+			if (value > alpha && value < beta) {
+				node.lowerbound = node.upperbound = value;
+			}
+			if (value >= beta) node.lowerbound = value;
+			computedStates.put(state, node);
+			return value;
+		}
 		// Have we reached the end of the line?
 		if (depth == this.depth) return state.heuristic();
 		// If not, recurse further. Identify the best actions to take.
@@ -122,25 +153,21 @@ public class MiniMaxDecider implements Decider {
 			}
 			// Pruning!
 			float pruner = maximize ? beta : alpha;
-			if (flag * value > flag * pruner) return value;
+			if (flag * value > flag * pruner) break;
 			// Updating alpha/beta values.
 			if (maximize && value > alpha) alpha = value;
 			else if (!maximize && value < beta) beta = value;
 		}
 		// Store so we don't have to compute it again.
-		return finalize(state, value);
-	}
-	
-	/**
-	 * Handy private function to stick into HashMap before returning.
-	 * We don't always want to stick into our HashMap, so use carefully.
-	 * @param state The State we are hashing.
-	 * @param value The value that State has.
-	 * @return The value we were passed.
-	 */
-	private float finalize(State state, float value) {
-		// THIS IS BROKEN DO NOT USE
-		//computedStates.put(state, value);
+		SearchNode node = new SearchNode();
+		if (value <= alpha) node.upperbound = value;
+		if (value > alpha && value < beta) {
+			node.lowerbound = node.upperbound = value;
+		}
+		if (value >= beta) node.lowerbound = value;
+		
+		computedStates.put(state, node);
+
 		return value;
 	}
 	
