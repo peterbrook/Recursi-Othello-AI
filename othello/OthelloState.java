@@ -1,5 +1,6 @@
 package othello;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.LinkedList;
@@ -508,13 +509,13 @@ public class OthelloState implements State {
 	/** {@inheritDoc} */
 	@Override
 	public float heuristic() {
-		return this.pieceDifferential() + 2*this.moveDifferential() + 5*this.cornerDifferential();
+		return this.pieceDifferential() + 8*this.moveDifferential() + 30*this.cornerDifferential();
 	}
 	
 	/** {@inheritDoc} */
 	@Override
 	public float heuristic2() {
-		return this.pieceDifferential() + 2*this.moveDifferential() + 5*this.cornerDifferential();
+		return this.pieceDifferential() + 8*this.moveDifferential() + 30*this.cornerDifferential();
 	}
 	
 	/** {@inheritDoc} */
@@ -575,7 +576,7 @@ public class OthelloState implements State {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		for (short line : hBoard) {
+		for (short line : this.hBoard) {
 			String lineString = lineToString(line);
 			for (int i = 0; i < lineString.length(); i++) {
 				char c = lineString.charAt(i);
@@ -611,6 +612,22 @@ public class OthelloState implements State {
 		OthelloState state = (OthelloState)other; 
 		if (this.move != state.move) return false;
 		return Arrays.equals(this.hBoard, state.hBoard);
+	}
+	
+	/** {@inheritDoc} */
+	@Override
+	public String identifier() {
+		BigInteger integer = BigInteger.ZERO;
+		BigInteger additive = BigInteger.ZERO;
+		for (int i = 0; i < 8; i++) {
+			integer = integer.add(BigInteger.valueOf(this.hBoard[i]));
+			additive = additive.add(BigInteger.valueOf(Short.MAX_VALUE));
+			if (i == 8) break;
+			integer = integer.shiftLeft(16);
+			additive = additive.shiftLeft(16);
+		}
+		integer = integer.add(additive.divide(BigInteger.valueOf(2)));
+		return (this.move ? "1" : "0") + integer.toString();
 	}
 	
 }

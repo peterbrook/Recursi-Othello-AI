@@ -50,9 +50,15 @@ public interface State extends Comparable<State>, Cloneable {
 	public State getParentState();
 
 	/**
-	 * Returns an alternate heuristic for comparing two heuristic functions
-	 * @return The heuristic value
+	 * Returns an alternate heuristic for comparing two heuristic functions.
+	 * @return The heuristic value.
 	 */
 	public float heuristic2();
+	
+	/**
+	 * Returns a unique String identifier for this State.
+	 * @return The identifier.
+	 */
+	public String identifier();
 
 }

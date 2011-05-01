@@ -22,8 +22,8 @@ public class TicTacToe {
 			start.executeMove((byte)-1, 1, 0);
 			start.executeMove((byte)1, 2, 0);
 			start.executeMove((byte)-1, 0, 2);*/
-			Game game = new Game(new MTDDecider(true, 5, 7),
-								 new MTDDecider(false, 5, 7),
+			Game game = new Game(new MTDDecider(true, 500, 9),
+								 new MTDDecider(false, 500, 9),
 								 start);
 			
 			final long startTime = System.nanoTime();

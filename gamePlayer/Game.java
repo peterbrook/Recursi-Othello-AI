@@ -50,7 +50,7 @@ public class Game {
 		// Try to apply it
 		try {
 			currentState = action.applyTo(currentState);
-			//if (PRINT) System.out.println(currentState);
+			if (PRINT) System.out.println(currentState);
 			//System.out.println(currentState);
 			//System.out.println("Heuristic value: "+currentState.heuristic());
 		} catch (InvalidActionException e) {
@@ -65,8 +65,9 @@ public class Game {
 	 */
 	public void run() {
 		while (this.currentState.getStatus() == Status.Ongoing) this.move();
-		System.out.print(this.currentState);
-		System.out.println("Game result: " + this.currentState.getStatus() + ".");
+		//this.move();
+		//System.out.print(this.currentState);
+		//System.out.println("Game result: " + this.currentState.getStatus() + ".");
 	}
 	
 	/**

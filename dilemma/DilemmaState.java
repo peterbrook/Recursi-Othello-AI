@@ -195,5 +195,11 @@ public class DilemmaState implements State {
 	public float heuristic2() {
 		return heuristic();
 	}
+
+	@Override
+	public String identifier() {
+		
+		return String.valueOf(hashCode());
+	}
 	
 }

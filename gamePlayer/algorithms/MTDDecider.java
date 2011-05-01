@@ -40,6 +40,7 @@ public class MTDDecider implements Decider {
 	private static final int WIN = 100000;
 
 	private static final boolean DEBUG = false;
+	private static final boolean USE_MTDF = false;
 
 	// Time we have to compute a move in milliseconds
 	private int searchTime;
@@ -62,6 +63,8 @@ public class MTDDecider implements Decider {
 
 	// Should we use the secondary heuristic?
 	private boolean useAltHeuristic;
+	private int mtdCalls;
+	private int cacheHits;
 
 	/**
 	 * Creates a new MTD(f)-based game-player
@@ -102,7 +105,7 @@ public class MTDDecider implements Decider {
 	@Override
 	public Action decide(State state) {
 		startTimeMillis = System.currentTimeMillis();
-		transpositionTable = new HashMap<State, SearchNode>(1000);
+		transpositionTable = new HashMap<State, SearchNode>(10000);
 		return iterative_deepening(state);
 	}
 
@@ -118,7 +121,7 @@ public class MTDDecider implements Decider {
 		if (DEBUG) GraphVizPrinter.setState(root);
 		// Create ActionValuePairs so that we can order Actions
 		List<ActionValuePair> actions = buildAVPList(root.getActions());
-		checkedNodes = 0;
+		checkedNodes = 0; mtdCalls = 0; cacheHits=0;
 		int d;
 		for (d = 1; d < maxdepth; d++) {
 			for (ActionValuePair a : actions) {
@@ -126,10 +129,17 @@ public class MTDDecider implements Decider {
 				try {
 					n = a.action.applyTo(root);
 					if (DEBUG) GraphVizPrinter.setState(n);
-					int value = MTDF(n, (int) a.value, d);
+					
+					int value;
+					if (USE_MTDF)
+						value = MTDF(n, (int) a.value, d);
+					else {
+						int flag = maximizer ? 1 : -1;
+						value = -AlphaBetaWithMemory(n, LOSE, WIN, d, -flag);
+					}
 					// Store the computed value for move ordering
 					a.value = value;
-					if (DEBUG) GraphVizPrinter.setRelation(n, a.value, root);
+					if (DEBUG) GraphVizPrinter.setRelation(n, a.value, root, LOSE, WIN);
 				} catch (InvalidActionException e) {
 					e.printStackTrace();
 				} catch (OutOfTimeException e) {
@@ -144,11 +154,13 @@ public class MTDDecider implements Decider {
 			}
 		}
 		if (DEBUG) GraphVizPrinter.printGraphToFile();
-		if (DEBUG) {
-			System.out.println("MTD got to depth " + d + " and checked " 
+	//	if (DEBUG) {
+			System.out.println("MTD called "+ mtdCalls + " times and got to depth " + d + " and checked " 
 					+ checkedNodes + " nodes in "
 					+ (System.currentTimeMillis() - startTimeMillis) + "ms");
-		}
+			System.out.println("Cache hits:"+cacheHits);
+		//}
+			System.out.println("Available actions:"+actions);
 		return getRandomBestAction(actions);
 	}
 
@@ -178,6 +190,7 @@ public class MTDDecider implements Decider {
 	 */
 	private int MTDF(State root, int firstGuess, int depth)
 			throws OutOfTimeException {
+		mtdCalls++;
 		int g = firstGuess;
 		int beta;
 		int upperbound = WIN;
@@ -231,7 +244,7 @@ public class MTDDecider implements Decider {
 		 * below us) then we are called infrequently enough that we can afford
 		 * to check if we are out of time
 		 */
-		if (depth > 5) {
+		if (depth > 3) {
 			if (times_up())
 				throw new OutOfTimeException();
 		}
@@ -246,7 +259,7 @@ public class MTDDecider implements Decider {
 		// >= depth rather than >
 		if (node != null && node.depth > depth) {
 			if (DEBUG) GraphVizPrinter.setCached(state);
-
+			cacheHits++;
 			switch (node.type) {
 			case EXACT_VALUE:
 				return node.value;
@@ -296,7 +309,7 @@ public class MTDDecider implements Decider {
 							depthsToSearch[i] - 1, -color);
 					// Store the value in the ActionValuePair for action ordering
 					a.value = newValue;
-					if (DEBUG) GraphVizPrinter.setRelation(childState, newValue, state);
+					if (DEBUG) GraphVizPrinter.setRelation(childState, newValue, state,-beta,-alpha);
 				} catch (InvalidActionException e) {
 					throw new RuntimeException("Invalid action!");
 				}
@@ -391,7 +404,7 @@ public class MTDDecider implements Decider {
 			bestActions.add(avp.action);
 		}
 
-		Collections.shuffle(bestActions);
+		Collections.shuffle(bestActions);//, new Random(4));
 		if (bestV == LOSE) {
 			if (DEBUG)
 				System.out.println("I LOST :(");

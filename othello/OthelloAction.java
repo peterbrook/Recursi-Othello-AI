@@ -57,4 +57,11 @@ public class OthelloAction implements Action<OthelloState> {
 		return builder.toString();
 	}
 
+	/**
+	 * Helper to check if this move represents a pass
+	 * @return
+	 */
+	public boolean isPass() {
+		return x == -1 && y==-1;
+	}
 }

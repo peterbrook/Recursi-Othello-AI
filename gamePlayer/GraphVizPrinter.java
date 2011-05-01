@@ -54,6 +54,18 @@ public class GraphVizPrinter {
 		if (daddy != null) gv.addln(getId(daddy) + " -> " + getId(state) + " [label=\"" + value + "\"];");
 	}
 	
+	/**
+	 * Set a relationship between two States with the given weight.
+	 * @param state The child State.
+	 * @param value The weight (heuristic) value of this relationship.
+	 * @param daddy The parent State.
+	 * @param alpha the alpha value passed in to this search
+	 * @param alpha the beta value passed in to this search
+	 */
+	public static void setRelation(State state, float value, State daddy, float alpha, float beta) {
+		if (daddy != null) gv.addln(getId(daddy) + " -> " + getId(state) + " [label=\"" + value + " (" + alpha + ", " + beta +")\"];");
+	}
+	
 	
 	/**
 	 * Highlight the final decision as red for easy viewing.
@@ -85,9 +97,9 @@ public class GraphVizPrinter {
 	
 	private static String getId(State s) {
 		StringBuilder sb = new StringBuilder();
-		sb.append(s.hashCode());
+		sb.append(s.identifier());
 		if (s.getParentState() != null) {
-			sb.append(s.getParentState().hashCode());
+			sb.append(s.getParentState().identifier());
 		}
 		return sb.toString();
 	}

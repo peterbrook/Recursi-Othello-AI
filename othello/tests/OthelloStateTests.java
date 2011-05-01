@@ -2,6 +2,13 @@ package othello.tests;
 
 import static org.junit.Assert.*;
 
+import java.util.Random;
+
+import gamePlayer.Action;
+import gamePlayer.InvalidActionException;
+import gamePlayer.State;
+import gamePlayer.algorithms.MTDDecider;
+
 import org.junit.*;
 
 import othello.OthelloState;
@@ -73,7 +80,7 @@ public class OthelloStateTests {
 		state.setValueOnBoards((byte)4, (byte)4, (byte)2);
 		state.setValueOnBoards((byte)3, (byte)4, (byte)3);
 		state.setValueOnBoards((byte)4, (byte)3, (byte)3);
-		//state.setValueOnBoards((byte)2, (byte)3, (byte)3);
+		state.setValueOnBoards((byte)2, (byte)3, (byte)3);
 		state.generateMoveBoards();
 		OthelloState res = state.childOnMove((byte)2, (byte)3);
 		
@@ -109,4 +116,65 @@ public class OthelloStateTests {
 		System.out.println(printState);
 	}
 
+	@Test
+	public void testHeuristic() {
+		OthelloState state = new OthelloState();
+		state.setValueOnBoards((byte)1, (byte)7, (byte)2);
+		state.setValueOnBoards((byte)2, (byte)5, (byte)3);
+		state.setValueOnBoards((byte)2, (byte)6, (byte)2);
+		
+		state.setValueOnBoards((byte)3, (byte)3, (byte)3);
+		state.setValueOnBoards((byte)3, (byte)4, (byte)3);
+		state.setValueOnBoards((byte)3, (byte)5, (byte)3);
+		
+		state.setValueOnBoards((byte)4, (byte)2, (byte)3);
+		state.setValueOnBoards((byte)4, (byte)3, (byte)3);
+		state.setValueOnBoards((byte)4, (byte)4, (byte)2);
+		state.setValueOnBoards((byte)4, (byte)5, (byte)3);
+		
+		state.setValueOnBoards((byte)5, (byte)1, (byte)3);
+		state.setValueOnBoards((byte)5, (byte)2, (byte)3);
+		state.setValueOnBoards((byte)5, (byte)3, (byte)3);
+		state.setValueOnBoards((byte)5, (byte)4, (byte)2);
+		state.setValueOnBoards((byte)5, (byte)5, (byte)3);
+		
+		state.setValueOnBoards((byte)6, (byte)2, (byte)2);
+		state.setValueOnBoards((byte)6, (byte)4, (byte)2);
+		
+		state.setValueOnBoards((byte)7, (byte)1, (byte)2);
+		state.setValueOnBoards((byte)7, (byte)2, (byte)2);
+		state.setValueOnBoards((byte)7, (byte)3, (byte)2);
+		
+		state.generateMoveBoards();
+		
+		MTDDecider d = new MTDDecider(true, 500000, 64);
+		Action a = d.decide(state);
+		try {
+			State newstate = a.applyTo(state);
+			
+			System.out.println(newstate);
+		} catch (InvalidActionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	@Test
+	public void testHash() {
+		OthelloState state = new OthelloState();
+		state.setStandardStartState();
+		state.generateMoveBoards();
+		
+		state.setValueOnBoards((byte)3, (byte)3, (byte)2);
+		state.setValueOnBoards((byte)3, (byte)4, (byte)3);
+		
+		int hc1 = state.hashCode();
+		state.setValueOnBoards((byte)2, (byte)3, (byte)2);
+		state.setValueOnBoards((byte)2, (byte)4, (byte)3);
+		int hc2 = state.hashCode();
+		
+		assertFalse(hc1==hc2);
+		
+	}
 }

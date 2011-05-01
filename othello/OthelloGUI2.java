@@ -1,6 +1,7 @@
 
 package othello;
 
+import gamePlayer.Action;
 import gamePlayer.Decider;
 import gamePlayer.InvalidActionException;
 import gamePlayer.State.Status;
@@ -14,6 +15,7 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.List;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -137,14 +139,34 @@ class GamePanel extends JPanel implements MouseListener {
 			return;
 		}
 
-		OthelloAction action = (OthelloAction) playerOne.decide(board);
-		try {
-			board = action.applyTo(board);
-			System.out.println(board);
-		} catch (InvalidActionException e) {
-			throw new RuntimeException("Invalid action!");
-		}
-		repaint();
+		List<Action> actions;
+		boolean isPass;
+		do {
+			System.out.println("Starting Computer Move");
+			OthelloAction action = (OthelloAction) playerOne.decide(board);
+			try {
+				board = action.applyTo(board);
+				System.out.println(board);
+			} catch (InvalidActionException e) {
+				throw new RuntimeException("Invalid action!");
+			}
+			repaint();
+			actions = board.getActions();
+			System.out.println("Finished with computer move");
+			isPass = (actions.size() == 1 && ((OthelloAction)actions.get(0)).isPass());
+			if (isPass) {
+				try {
+					board = (OthelloState) actions.get(0).applyTo(board);
+					repaint();
+				} catch (InvalidActionException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				repaint();
+			}
+		} while (isPass && board.getStatus() == Status.Ongoing);
+		
+		
 		// Next person's turn
 		this.turn = !this.turn;
 		inputEnabled = true;
@@ -218,9 +240,12 @@ public class OthelloGUI2 extends JFrame {
 		OthelloState start = new OthelloState();
 		start.setStandardStartState();
 
-		gamePanel = new GamePanel(new MTDDecider(true, 4, 200),
+		
+		gamePanel = new GamePanel(new MTDDecider(true, 7000, 64),
 				new OthelloPlayer(false), start);
-
+		
+		/*gamePanel = new GamePanel(new MiniMaxDecider(true, 7),
+				new OthelloPlayer(false), start);*/
 		gamePanel.setMinimumSize(new Dimension( Width,
 				 Height));
 
