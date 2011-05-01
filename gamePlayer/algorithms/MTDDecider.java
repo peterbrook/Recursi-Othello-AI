@@ -123,7 +123,7 @@ public class MTDDecider implements Decider {
 		List<ActionValuePair> actions = buildAVPList(root.getActions());
 		checkedNodes = 0; mtdCalls = 0; cacheHits=0;
 		int d;
-		for (d = 1; d < maxdepth; d++) {
+		for (d = 1; d < maxdepth; d+=2) {
 			for (ActionValuePair a : actions) {
 				State n;
 				try {
