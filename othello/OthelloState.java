@@ -533,11 +533,6 @@ public class OthelloState implements State {
 						getSpotOnBoardAt(vBoards[0], (byte)1, i, j) |
 						getSpotOnBoardAt(dBoard1s[0], (byte)2, i, j) |
 						getSpotOnBoardAt(dBoard2s[0], (byte)3, i, j));
-				
-				/*if (this.moveIsValid(i, j, true))
-					this.p1MoveBoard[i] = (short)(this.p1MoveBoard[i] | 2);
-				if (this.moveIsValid(i, j, false))
-					this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] | 2);*/
 				if (j + 1 == dimension) break;
 				this.p1MoveBoard[i] = (short)(this.p1MoveBoard[i] << 2);
 				this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] << 2);
