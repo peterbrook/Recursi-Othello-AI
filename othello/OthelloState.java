@@ -21,24 +21,30 @@ public class OthelloState implements State {
 	private static final boolean DEBUG = false;
 	// The dimension of this board. Since we're using shorts, must be less than equal to 8.
 	private static final int dimension = 8;
+	
+	/**
+	 * 00 = empty; 01 = ignored; 10 = white; 11 = black.
+	 */
+	
 	// A lookup table to figure out the point differential in a line 
 	private static byte[] pointTable = new byte[65536];
 	
 	/**
 	 * Lookup table that has all results for lines from moves.
-	 * 00 = empty; 01 = ignored; 10 = white; 11 = black.
 	 * First index is the current line... 2^16; all possible shorts.
 	 * Second index is the index of the move... dimension possibilities.
 	 * Third index is the player making the move... 2 players.
 	 */
 	private static short[][][] lookupTable = new short[65536][dimension][2];
 	
+	// Lookup table that has stability metrics for lines.
+	private static float[] stabilityTable = new float[65536];
+	
 	/**
 	 * The static constructor to generate our tables.
 	 */
 	static {
-		generatePointsTable((short)0, (byte)0, (byte)0);
-		generateLookupTable((short)0, (byte)0);
+		generateTables((short)0, (byte)0, (byte)0);
 		System.out.println("Finished generating tables!");
 	}
 	
@@ -48,18 +54,20 @@ public class OthelloState implements State {
 	 * @param points The points, as so far counted.
 	 * @param depth  The depth we have so far traversed.
 	 */
-	private static void generatePointsTable(short line, byte points, byte depth) {
+	private static void generateTables(short line, byte points, byte depth) {
 		// End case?
 		if (depth == dimension) {
 			pointTable[line + 32768] = points;
+			generateLookupValue(line);
+			generateStabilityValue(line);
 			return;
 		}
 		// Recursive!
 		line = (short)(line << 2);
-		generatePointsTable(line, points, (byte)(depth + 1));
-		generatePointsTable((short)(line | 1), points, (byte)(depth + 1));
-		generatePointsTable((short)(line | 2), (byte)(points + 1), (byte)(depth + 1));
-		generatePointsTable((short)(line | 3), (byte)(points - 1), (byte)(depth + 1));
+		generateTables(line, points, (byte)(depth + 1));
+		generateTables((short)(line | 1), points, (byte)(depth + 1));
+		generateTables((short)(line | 2), (byte)(points + 1), (byte)(depth + 1));
+		generateTables((short)(line | 3), (byte)(points - 1), (byte)(depth + 1));
 	}
 	
 	/**
@@ -126,85 +134,116 @@ public class OthelloState implements State {
 	}
 	
 	/**
-	 * Recursively generate the lookup table for moves.
-	 * @param line  The line, as so far specified.
-	 * @param depth The depth we have so far traversed.
+	 * Generate a lookup value for a particular line.
+	 * @param line The line to generate the value for.
 	 */
-	private static void generateLookupTable(short line, byte depth) {
-		// End case?
-		if (depth == dimension) {
-			for (byte i = 0; i < dimension; i++) {
-				// Is this spot already set?
-				byte spot = getSpotOnLine(line, i);
-				if (spot != 0) {
-					if (DEBUG) System.out.println("Can't move on index " + i + "! Already occupied.");
-					if (DEBUG) System.out.println(lineToString(line) + " resolves to itself");
-					lookupTable[line + 32768][i][0] = line;
-					lookupTable[line + 32768][i][1] = line;
-					continue;
-				}
-				// Build the right side of possible moves
-				byte j = (byte)(i + 1);
-				short p1Right = line, p2Right = line;
-				byte firstByte = getSpotOnLine(line, j);
-				// Is the first byte to the right of this one actually set?
-				if (firstByte > 1 && j < dimension) {
-					// Is the first byte to the right player 1 or player 2? 
-					boolean first = firstByte == 2;
-					while (true) {
-						j++;
-						if (j >= dimension) break;
-						byte thisByte = getSpotOnLine(line, j); 
-						if (thisByte < 2) break;
-						if (first && thisByte == 2) continue;
-						if (!first && thisByte == 3) continue;
-						// The flips shall occur!
-						if (DEBUG) System.out.println("Flips will occur on right!");
-						j--;
-						if (first) for (; j > i; j--) p2Right = setSpotOnLine(p2Right, j, (byte)3); 
-						else for (; j > i; j--) p1Right = setSpotOnLine(p1Right, j, (byte)2);
-						break;
-					}
-				}
-				// Build the left side of possible moves
-				j = (byte)(i - 1);
-				short p1Left = line, p2Left = line;
-				firstByte = getSpotOnLine(line, j);
-				// Is the first byte to the right of this one actually set?
-				if (firstByte > 1 && j > 0) {
-					// Is the first byte to the right player 1 or player 2? 
-					boolean first = firstByte == 2;
-					while (true) {
-						j--;
-						if (j < 0) break;
-						byte thisByte = getSpotOnLine(line, j); 
-						if (thisByte < 2) break;
-						// Keep going!
-						if (first && thisByte == 2) continue;
-						if (!first && thisByte == 3) continue;
-						// The flips shall occur!
-						if (DEBUG) System.out.println("Flips will occur on left!");
-						j++;
-						if (first) for (; j < i; j++) p2Left = setSpotOnLine(p2Left, j, (byte)3); 
-						else for (; j < i; j++) p1Left = setSpotOnLine(p1Left, j, (byte)2);
-						break;
-					}
-				}
-				short p1 = combineIntoLine(p1Left, (byte)2, p1Right, i);
-				short p2 = combineIntoLine(p2Left, (byte)3, p2Right, i);
-				lookupTable[line + 32768][i][1] = p1;
-				lookupTable[line + 32768][i][0] = p2;
-				if (DEBUG) System.out.println(lineToString(line) + " resolves to " + lineToString(p1));
-				if (DEBUG) System.out.println(lineToString(line) + " resolves to " + lineToString(p2));
+	private static void generateLookupValue(short line) {
+		for (byte i = 0; i < dimension; i++) {
+			// Is this spot already set?
+			byte spot = getSpotOnLine(line, i);
+			if (spot != 0) {
+				if (DEBUG) System.out.println("Can't move on index " + i + "! Already occupied.");
+				if (DEBUG) System.out.println(lineToString(line) + " resolves to itself");
+				lookupTable[line + 32768][i][0] = line;
+				lookupTable[line + 32768][i][1] = line;
+				continue;
 			}
-			return;
+			// Build the right side of possible moves
+			byte j = (byte)(i + 1);
+			short p1Right = line, p2Right = line;
+			byte firstByte = getSpotOnLine(line, j);
+			// Is the first byte to the right of this one actually set?
+			if (firstByte > 1 && j < dimension) {
+				// Is the first byte to the right player 1 or player 2? 
+				boolean first = firstByte == 2;
+				while (true) {
+					j++;
+					if (j >= dimension) break;
+					byte thisByte = getSpotOnLine(line, j); 
+					if (thisByte < 2) break;
+					if (first && thisByte == 2) continue;
+					if (!first && thisByte == 3) continue;
+					// The flips shall occur!
+					if (DEBUG) System.out.println("Flips will occur on right!");
+					j--;
+					if (first) for (; j > i; j--) p2Right = setSpotOnLine(p2Right, j, (byte)3); 
+					else for (; j > i; j--) p1Right = setSpotOnLine(p1Right, j, (byte)2);
+					break;
+				}
+			}
+			// Build the left side of possible moves
+			j = (byte)(i - 1);
+			short p1Left = line, p2Left = line;
+			firstByte = getSpotOnLine(line, j);
+			// Is the first byte to the right of this one actually set?
+			if (firstByte > 1 && j > 0) {
+				// Is the first byte to the right player 1 or player 2? 
+				boolean first = firstByte == 2;
+				while (true) {
+					j--;
+					if (j < 0) break;
+					byte thisByte = getSpotOnLine(line, j); 
+					if (thisByte < 2) break;
+					// Keep going!
+					if (first && thisByte == 2) continue;
+					if (!first && thisByte == 3) continue;
+					// The flips shall occur!
+					if (DEBUG) System.out.println("Flips will occur on left!");
+					j++;
+					if (first) for (; j < i; j++) p2Left = setSpotOnLine(p2Left, j, (byte)3); 
+					else for (; j < i; j++) p1Left = setSpotOnLine(p1Left, j, (byte)2);
+					break;
+				}
+			}
+			short p1 = combineIntoLine(p1Left, (byte)2, p1Right, i);
+			short p2 = combineIntoLine(p2Left, (byte)3, p2Right, i);
+			lookupTable[line + 32768][i][1] = p1;
+			lookupTable[line + 32768][i][0] = p2;
+			if (DEBUG) System.out.println(lineToString(line) + " resolves to " + lineToString(p1));
+			if (DEBUG) System.out.println(lineToString(line) + " resolves to " + lineToString(p2));
 		}
-		// Recursive!
-		line = (short)(line << 2);
-		generateLookupTable(line, (byte)(depth + 1));
-		generateLookupTable((short)(line | 1), (byte)(depth + 1));
-		generateLookupTable((short)(line | 2), (byte)(depth + 1));
-		generateLookupTable((short)(line | 3), (byte)(depth + 1));
+	}
+	
+	/**
+	 * Generate a stability value for a particular line.
+	 * @param line The line to generate the value for.
+	 */
+	private static void generateStabilityValue(short line) {
+		float value = 0;
+		byte index = 0; 
+		byte spot = getSpotOnLine(line, index);
+		// Get through all the initial walls
+		while (spot == 1 && index < 8) {
+			index++;
+			spot = getSpotOnLine(line, index);
+		}
+		// Go until we find another wall
+		byte last = 1;
+		byte current = spot;
+		byte seen = 0;
+		while (spot != 1) { // spot == 1 when index <= dimension
+			// No transition?
+			if (spot == current) seen++;
+			// Transition?
+			else {
+				// Should we count this?
+				if (spot == 0) {
+					if (last == 2 && current == 3) value += seen;
+					else if (last == 3 && current == 2) value -= seen;
+				} else if (last == 0) {
+					if (spot == 2 && current == 3) value += seen;
+					else if (spot == 3 && current == 2) value -= seen;
+				}
+				last = current;
+				seen = 1;
+				current = spot;
+			}
+			index++;
+			spot = getSpotOnLine(line, index);
+		}
+		// Set the value in the stability table
+		System.out.println(lineToString(line) + " resolves to " + value);
+		stabilityTable[line + 32768] = value;
 	}
 	
 	// Whose move is it? True = player 1; false = player 2.
@@ -328,9 +367,9 @@ public class OthelloState implements State {
 	
 	/**
 	 * Checks if a move on a spot by the current player is valid.
-	 * @param x      The x-coordinate of the move.
-	 * @param y      The y-coordinate of the move.
-	 * @return       True if valid; false otherwise.
+	 * @param x The x-coordinate of the move.
+	 * @param y The y-coordinate of the move.
+	 * @return  True if valid; false otherwise.
 	 */
 	public boolean moveIsValid(byte x, byte y, boolean player) {
 		// Pass?
@@ -469,6 +508,28 @@ public class OthelloState implements State {
 	}
 	
 	/**
+	 * Get the stability metric for a particular board.
+	 * @param board The board to get the stability metric for.
+	 * @return The stability metric for the provided board.
+	 */
+	private float getStabilitySumForBoard(short[] board) {
+		float metric = 0;
+		for (short line : board) metric += stabilityTable[line + 32768];
+		return metric;
+	}
+	
+	/**
+	 * Returns the difference between the stability metric for player 1 and player 2.
+	 * @return The difference between the stability metric for player 1 and player 2
+	 */
+	private float stabilityDifferential() {
+		return getStabilitySumForBoard(hBoard)
+			 + getStabilitySumForBoard(vBoard)
+		     + getStabilitySumForBoard(dBoard1)
+		     + getStabilitySumForBoard(dBoard2);
+	}
+	
+	/**
 	 * Returns the difference between player 1 and player 2's total piece count.
 	 * @return The difference between player 1 and player 2's total piece count.
 	 */
@@ -509,7 +570,10 @@ public class OthelloState implements State {
 	/** {@inheritDoc} */
 	@Override
 	public float heuristic() {
-		return this.pieceDifferential() + 8*this.moveDifferential() + 30*this.cornerDifferential();
+		return this.pieceDifferential() +
+		   8 * this.moveDifferential() +
+		  30 * this.cornerDifferential() +
+		       this.stabilityDifferential();
 	}
 	
 	/** {@inheritDoc} */
@@ -571,7 +635,7 @@ public class OthelloState implements State {
 	
 	/**
 	 * Returns a String representation of this OthelloState.
-	 * @return a String representation of this OthelloState.
+	 * @return A String representation of this OthelloState.
 	 */
 	@Override
 	public String toString() {
