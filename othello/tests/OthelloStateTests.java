@@ -1,16 +1,19 @@
 package othello.tests;
 
-import static org.junit.Assert.*;
-
-import java.util.Random;
-
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import gamePlayer.Action;
+import gamePlayer.Decider;
 import gamePlayer.InvalidActionException;
 import gamePlayer.State;
 import gamePlayer.algorithms.MTDDecider;
 
-import org.junit.*;
+import java.awt.Point;
+import java.util.HashMap;
 
+import org.junit.Test;
+
+import othello.OthelloAction;
 import othello.OthelloState;
 
 public class OthelloStateTests {
@@ -116,6 +119,106 @@ public class OthelloStateTests {
 		System.out.println(printState);
 	}
 
+	@Test
+	public void testPlan() {
+		OthelloState state = new OthelloState();
+		state.setStandardStartState();
+		String[] moves = "f5 f6 e6 f4 e3 c5 c6 d6 e7 f3 g4 g5 h6 g3 b5 h4 g6 f7 h5 h7 h3 h2 f8 d7 e8 c4 c7".split(" ");
+		
+		for (String s: moves) {
+			Point p = sToM(s);
+			state = state.childOnMove((byte)p.x, (byte)p.y);
+		}
+		
+		Decider d = new MTDDecider(false, 12000, 64);
+		OthelloAction a = (OthelloAction) d.decide(state);
+		
+		System.out.println("Move: "+a);
+		try {
+			state = a.applyTo(state);
+			System.out.println("New State:\n"+state);
+			assertTrue(state.getSpotAsChar((byte)6, (byte)6) == ' ');
+		} catch (InvalidActionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+	@Test
+	public void testPlan2() {
+		OthelloState state = new OthelloState();
+		state.setStandardStartState();
+		String[] moves = "d3 c5 e6 f5 f6 e3 d6 f7 b6 d7 d8 c6".split(" "); // g7 b5 
+		
+		for (String s: moves) {
+			Point p = sToM(s);
+			state = state.childOnMove((byte)p.x, (byte)p.y);
+		}
+		
+		Decider d = new MTDDecider(true, 50000, 64);
+		OthelloAction a = (OthelloAction) d.decide(state);
+		
+		System.out.println("Move: "+a);
+		try {
+			state = a.applyTo(state);
+			System.out.println("New State:\n"+state);
+			assertTrue(state.getSpotAsChar((byte)6, (byte)6) == ' ');
+		} catch (InvalidActionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	public void testPlan3() {
+		OthelloState state = new OthelloState();
+		state.setStandardStartState();
+		String[] moves = "e6 f4 d3 d6 e3 f6 e7 f8 g5 h4 h6 c3 c5 d2 c4 f5 f3 e2 g4 g6 f2 h3 e1 h5 h2 g3 c1 d1 f1 c2 e8 d7 c8 c6 b3 a3 h7 f7 b6 d8 g8 c7 b8 a6".split(" "); // b4 a4 b5 b7 
+		
+		for (String s: moves) {
+			Point p = sToM(s);
+			state = state.childOnMove((byte)p.x, (byte)p.y);
+		}
+		
+		Decider d = new MTDDecider(true, 50000, 64);
+		OthelloAction a = (OthelloAction) d.decide(state);
+		
+		System.out.println("Move: "+a);
+		try {
+			state = a.applyTo(state);
+			System.out.println("New State:\n"+state);
+			assertTrue(state.getSpotAsChar((byte)6, (byte)6) == ' ');
+		} catch (InvalidActionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private Point sToM(String move) {
+		if (move.length() != 2) {
+			throw new IllegalArgumentException();
+		}
+		HashMap<Character,Integer> charMap = new HashMap<Character, Integer>();
+		charMap.put('a', 0);
+		charMap.put('b', 1);
+		charMap.put('c', 2);
+		charMap.put('d', 3);
+		charMap.put('e', 4);
+		charMap.put('f', 5);
+		charMap.put('g', 6);
+		charMap.put('h', 7);
+		
+		char c1 = move.charAt(0);
+		char c2 = move.charAt(1);
+		
+		Point p = new Point();
+		p.x = Character.getNumericValue(c2) - 1;
+		p.y = charMap.get(c1);
+		return p;
+		
+	}
+	
 	@Test
 	public void testHeuristic() {
 		OthelloState state = new OthelloState();
