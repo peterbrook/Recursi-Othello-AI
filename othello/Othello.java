@@ -23,8 +23,8 @@ public class Othello {
 			startState.setValueOnBoards((byte)3, (byte)4, (byte)3);
 			startState.generateMoveBoards();*/
 			//System.out.println("Start State:\n"+startState);
-			Game g = new Game(new MTDDecider(true, 30, 64, false),
-					 new MTDDecider(false, 30, 64, true),
+			Game g = new Game(new MTDDecider(true, 30, 64, false, false),
+					 new MTDDecider(false, 30, 64, true, false),
 					 startState);
 			g.run();
 			if (g.getStatus() == Status.PlayerOneWon) p1++;
