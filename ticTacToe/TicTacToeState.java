@@ -1,11 +1,9 @@
 package ticTacToe;
-import java.util.LinkedList;
-import java.util.List;
-
-import sun.net.www.http.Hurryable;
-
 import gamePlayer.Action;
 import gamePlayer.State;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * This is a State of the game Tic Tac Toe.
@@ -242,6 +240,12 @@ public class TicTacToeState implements State {
 	@Override
 	public float heuristic2() {
 		return heuristic();
+	}
+
+	@Override
+	public String identifier() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }
