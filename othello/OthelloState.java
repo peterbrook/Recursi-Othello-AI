@@ -40,6 +40,9 @@ public class OthelloState implements State {
 	// Lookup table that has stability metrics for lines.
 	private static float[] stabilityTable = new float[65536];
 	
+	// Lookup table that has valid moves for lines
+	private static short[][] movesTable = new short[65536][2];
+	
 	/**
 	 * The static constructor to generate our tables.
 	 */
@@ -57,8 +60,9 @@ public class OthelloState implements State {
 	private static void generateTables(short line, byte points, byte depth) {
 		// End case?
 		if (depth == dimension) {
+			if (!isValid(line)) return;
 			pointTable[line + 32768] = points;
-			generateLookupValue(line);
+			generateLookupAndMoveValue(line);
 			generateStabilityValue(line);
 			return;
 		}
@@ -132,12 +136,67 @@ public class OthelloState implements State {
 		}
 		return builder.toString();
 	}
+
+	/**
+	 * Get a short representing only the spots that have changed between two lines.
+	 * @param line    The original state of the line.
+	 * @param newLine The new state of the line.
+	 * @param index   The index of the actual move.
+	 * @return A short representing only the changed spots.
+	 */
+	private static short getFlippedSpots(short line, short newLine, byte index) {
+		short mask = (short)~(3 << (index * 2));
+		return (short)((newLine ^ line) & mask);
+	}
+	
+	/**
+	 * Reverse a line.
+	 * @param line The line to reverse.
+	 * @return The reversed line.
+	 */
+	private static short reverseLine(short line) {
+		short reverse = 0;
+		for (byte i = 0; i < dimension; i++) {
+			reverse = (short)(reverse | getSpotOnLine(line, i));
+			if (i + 1 == dimension) break;
+			reverse = (short)(reverse << 2);
+		}
+		return reverse;
+	}
+	
+	/**
+	 * Check if a line is a valid and possible configuration.
+	 * @param line The line to check.
+	 * @return True if the line is valid; false otherwise.
+	 */
+	private static boolean isValid(short line) {
+		byte i = 0;
+		byte spot = getSpotOnLine(line, i);
+		// Go through all the walls at the start
+		while (spot == 1 && i < dimension) {
+			i++;
+			spot = getSpotOnLine(line, i);
+		}
+		if (i == dimension) return false;
+		// Go through all the non-walls
+		while (spot != 1) {
+			i++;
+			spot = getSpotOnLine(line, i);
+		}
+		// Make sure the second set of walls terminates
+		while (spot == 1 && i < dimension) {
+			i++;
+			spot = getSpotOnLine(line, i);
+		}
+		return i == dimension;
+	}
 	
 	/**
 	 * Generate a lookup value for a particular line.
 	 * @param line The line to generate the value for.
 	 */
-	private static void generateLookupValue(short line) {
+	private static void generateLookupAndMoveValue(short line) {
+		short p1MoveLine = 0, p2MoveLine = 0;
 		for (byte i = 0; i < dimension; i++) {
 			// Is this spot already set?
 			byte spot = getSpotOnLine(line, i);
@@ -146,6 +205,9 @@ public class OthelloState implements State {
 				if (DEBUG) System.out.println(lineToString(line) + " resolves to itself");
 				lookupTable[line + 32768][i][0] = line;
 				lookupTable[line + 32768][i][1] = line;
+				if ((i + 1) == dimension) break;
+				p1MoveLine = (short)(p1MoveLine << 2);
+				p2MoveLine = (short)(p2MoveLine << 2);
 				continue;
 			}
 			// Build the right side of possible moves
@@ -201,7 +263,22 @@ public class OthelloState implements State {
 			lookupTable[line + 32768][i][0] = p2;
 			if (DEBUG) System.out.println(lineToString(line) + " resolves to " + lineToString(p1));
 			if (DEBUG) System.out.println(lineToString(line) + " resolves to " + lineToString(p2));
+			// Set to 2 so we can calculate sum quickly using pointsTable
+			if (getFlippedSpots(line, p1, i) != 0) {
+				p1MoveLine = (short)(p1MoveLine | 2);
+			}
+			if (getFlippedSpots(line, p2, i) != 0) {
+				p2MoveLine = (short)(p2MoveLine | 2);
+			}
+			// If we're done, don't shift anymore
+			if ((i + 1) == dimension) break;
+			p1MoveLine = (short)(p1MoveLine << 2);
+			p2MoveLine = (short)(p2MoveLine << 2);
 		}
+		movesTable[line + 32768][1] = reverseLine(p1MoveLine);
+		movesTable[line + 32768][0] = reverseLine(p2MoveLine);
+		if (DEBUG) System.out.println(lineToString(line) + " allows p1 " + lineToString(reverseLine(p1MoveLine)));
+		if (DEBUG) System.out.println(lineToString(line) + " allows p2 " + lineToString(reverseLine(p2MoveLine)));
 	}
 	
 	/**
@@ -302,6 +379,33 @@ public class OthelloState implements State {
 	}
 	
 	/**
+	 * Get the index of a spot within a line.
+	 * Different boards will use different indexes for their lines.
+	 * @param board The board we are checking.
+	 * @param x     The x-coordinate of the spot.
+	 * @param y     The y-coordinate of the spot.
+	 * @return The index used for this spot.
+	 */
+	private static byte getIndex(byte board, byte x, byte y) {
+		// Only boards 1 and 2 care about which is used as the index
+		return board == 0 ? y : x;
+	}
+	
+	/**
+	 * Get the line index of a spot within a line.
+	 * @param board The board we are checking.
+	 * @param x     The x-coordinate of the spot.
+	 * @param y     The y-coordinate of the spot.
+	 * @return The line index used for this spot.
+	 */
+	private static byte getLineIndex(byte board, byte x, byte y) {
+		if (board == 0) return x;
+		if (board == 1) return y;
+		if (board == 2) return (byte)(x + y);
+		return (byte)(x - y + dimension - 1);
+	}
+	
+	/**
 	 * Get the lines relevant to a particular spot on the board.
 	 * @param x The x-coordinate of the spot.
 	 * @param y The y-coordinate of the spot.
@@ -309,10 +413,10 @@ public class OthelloState implements State {
 	 */
 	private short[] getLines(byte x, byte y) {
 		short[] lines = new short[4];
-		lines[0] = this.hBoard[x];
-		lines[1] = this.vBoard[y];
-		lines[2] = this.dBoard1[x + y];
-		lines[3] = this.dBoard2[x - y + dimension - 1];
+		lines[0] = this.hBoard[getLineIndex((byte)0, x, y)];
+		lines[1] = this.vBoard[getLineIndex((byte)1, x, y)];
+		lines[2] = this.dBoard1[getLineIndex((byte)2, x, y)];
+		lines[3] = this.dBoard2[getLineIndex((byte)3, x, y)];
 		return lines;
 	}
 	
@@ -341,31 +445,6 @@ public class OthelloState implements State {
 	}
 	
 	/**
-	 * Get the index of a spot within a line.
-	 * Different boards will use different indexes for their lines.
-	 * @param board The board we are checking.
-	 * @param x     The x-coordinate of the spot.
-	 * @param y     The y-coordinate of the spot.
-	 * @return The index used for this spot.
-	 */
-	private static byte getIndex(byte board, byte x, byte y) {
-		// Only boards 1 and 2 care about which is used as the index
-		return board == 0 ? y : x;
-	}
-	
-	/**
-	 * Get a short representing only the spots that have changed between two lines.
-	 * @param line    The original state of the line.
-	 * @param newLine The new state of the line.
-	 * @param index   The index of the actual move.
-	 * @return A short representing only the changed spots.
-	 */
-	private static short getFlippedSpots(short line, short newLine, byte index) {
-		short mask = (short)~(3 << (index * 2));
-		return (short)((newLine ^ line) & mask);
-	}
-	
-	/**
 	 * Checks if a move on a spot by the current player is valid.
 	 * @param x The x-coordinate of the move.
 	 * @param y The y-coordinate of the move.
@@ -387,23 +466,78 @@ public class OthelloState implements State {
 			// You're moving on top of an occupied space
 			if (newLine == lines[i]) return false;
 			// A flip occurred, so this move is legal. Ignore changes in index spot.
-			if (getFlippedSpots(lines[i], newLine, index) != 0) return true; 
+			if (getFlippedSpots(lines[i], newLine, index) != 0) return true;
 		}
 		// No flips, so illegal
 		return false;
 	}
-
+	
+	/**
+	 * Return a board based on its index.
+	 * @param index The index of the board.
+	 * @return The board at that index.
+	 */
+	private short[] getBoardFromIndex(byte index) {
+		if (index == 0) return hBoard;
+		if (index == 1) return vBoard;
+		if (index == 2) return dBoard1;
+		return dBoard2;
+	}
+	
+	/**
+	 * Get the partial moveBoards in a particular direction.
+	 * @param boardIndex The index of the board to get.
+	 * @return The partial moveBoard.
+	 */
+	private short[][] getPartialMoveBoards(byte boardIndex) {
+		short[] inputBoard = getBoardFromIndex(boardIndex);
+		short[][] outputBoards = new short[2][inputBoard.length];
+		for (int i = 0; i < inputBoard.length; i++) {
+			outputBoards[0][i] = movesTable[inputBoard[i] + 32768][0];
+			outputBoards[1][i] = movesTable[inputBoard[i] + 32768][1];
+		}
+		return outputBoards;
+	}
+	
+	/**
+	 * Get a particular spot on a particular board.
+	 * @param board      The board to read from.
+	 * @param boardIndex The index of the type of board. 
+	 * @param x          The x-coordinate of the spot.
+	 * @param y          The y-coordinate of the spot.
+	 * @return The requested spot on the provided board.
+	 */
+	private byte getSpotOnBoardAt(short[] board, byte boardIndex, byte x, byte y) {
+		return getSpotOnLine(board[getLineIndex(boardIndex, x, y)], getIndex(boardIndex, x, y));
+	}
+	
 	/**
 	 * Generate bit-boards representing the validity of moves for each player.
 	 * 00 = invalid; 10 = valid. 2 bits so we can use point lookup table.
 	 */
 	public void generateMoveBoards() {
+		// This isn't pretty, but Java doesn't have better ways
+		short[][] hBoards = getPartialMoveBoards((byte)0);
+		short[][] vBoards = getPartialMoveBoards((byte)1);
+		short[][] dBoard1s = getPartialMoveBoards((byte)2);
+		short[][] dBoard2s = getPartialMoveBoards((byte)3);
 		for (byte i = 0; i < dimension; i++) {
 			for (byte j = 0; j < dimension; j++) {
-				if (this.moveIsValid(i, j, true))
+				this.p1MoveBoard[i] = (short)(this.p1MoveBoard[i] |
+						getSpotOnBoardAt(hBoards[1], (byte)0, i, j) |
+						getSpotOnBoardAt(vBoards[1], (byte)1, i, j) |
+						getSpotOnBoardAt(dBoard1s[1], (byte)2, i, j) |
+						getSpotOnBoardAt(dBoard2s[1], (byte)3, i, j));
+				this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] |
+						getSpotOnBoardAt(hBoards[0], (byte)0, i, j) |
+						getSpotOnBoardAt(vBoards[0], (byte)1, i, j) |
+						getSpotOnBoardAt(dBoard1s[0], (byte)2, i, j) |
+						getSpotOnBoardAt(dBoard2s[0], (byte)3, i, j));
+				
+				/*if (this.moveIsValid(i, j, true))
 					this.p1MoveBoard[i] = (short)(this.p1MoveBoard[i] | 2);
 				if (this.moveIsValid(i, j, false))
-					this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] | 2);
+					this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] | 2);*/
 				if (j + 1 == dimension) break;
 				this.p1MoveBoard[i] = (short)(this.p1MoveBoard[i] << 2);
 				this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] << 2);
@@ -561,9 +695,7 @@ public class OthelloState implements State {
 		corners[1] = getSpotOnLine(hBoard[0], (byte)(dimension - 1));
 		corners[2] = getSpotOnLine(hBoard[dimension - 1], (byte)0);
 		corners[3] = getSpotOnLine(hBoard[dimension - 1], (byte)(dimension - 1));
-		for (short corner : corners) {
-			if (corner != 0) diff += corner == 2 ? 1 : -1;
-		}
+		for (short corner : corners) if (corner != 0) diff += corner == 2 ? 1 : -1;
 		return diff;
 	}
 	
@@ -589,11 +721,9 @@ public class OthelloState implements State {
 		List<Action> actions = new LinkedList<Action>();
 		short[] moveBoard = this.move ? p1MoveBoard : p2MoveBoard;
 		for (byte i = 0; i < dimension; i++) {
-			short mask = 3;
 			for (byte j = 0; j < dimension; j++) {
-				if ((moveBoard[i] & mask) != 0)
+				if (getSpotOnLine(moveBoard[i], j) != 0)
 					actions.add(new OthelloAction(this.move, i, (byte)(dimension - j - 1)));
-				mask = (short)(mask << 2);
 			}
 		}
 		if (actions.isEmpty()) actions.add(new OthelloAction(this.move, (byte)-1, (byte)-1));
