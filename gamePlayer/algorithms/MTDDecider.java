@@ -36,11 +36,11 @@ public class MTDDecider implements Decider {
 	}
 
 	// These are easier to see than maxint and minint
-	private static final int LOSE = -100000;
-	private static final int WIN = 100000;
+	public static final int LOSE = -100000;
+	public static final int WIN = 100000;
 
 	private static final boolean DEBUG = false;
-	private static final boolean USE_MTDF = false;
+	private boolean USE_MTDF;
 
 	// Time we have to compute a move in milliseconds
 	private int searchTime;
@@ -77,7 +77,7 @@ public class MTDDecider implements Decider {
 	 *            What is the maximum depth we should ever search to?
 	 */
 	public MTDDecider(boolean maximizer, int searchTimeSec, int maxdepth) {
-		this(maximizer, searchTimeSec, maxdepth, false);
+		this(maximizer, searchTimeSec, maxdepth, false, false);// TODO: change this last true to false to remove mtd
 	}
 
 	/**
@@ -94,11 +94,12 @@ public class MTDDecider implements Decider {
 	 *            Use an alternative heuristic for the game
 	 */
 	public MTDDecider(boolean maximizer, int searchTimeMSec, int maxdepth,
-			boolean useAltHeuristic) {
+			boolean useAltHeuristic, boolean usemtd) {
 		searchTime = searchTimeMSec;
 		this.maximizer = maximizer;
 		this.maxdepth = maxdepth;
 		this.useAltHeuristic = useAltHeuristic;
+		USE_MTDF = usemtd;
 	}
 
 	/** {@inheritDoc} */
@@ -122,8 +123,10 @@ public class MTDDecider implements Decider {
 		// Create ActionValuePairs so that we can order Actions
 		List<ActionValuePair> actions = buildAVPList(root.getActions());
 		checkedNodes = 0; mtdCalls = 0; cacheHits=0;
+		
 		int d;
 		for (d = 1; d < maxdepth; d+=2) {
+			int alpha = LOSE; int beta = WIN;
 			for (ActionValuePair a : actions) {
 				State n;
 				try {
@@ -135,31 +138,50 @@ public class MTDDecider implements Decider {
 						value = MTDF(n, (int) a.value, d);
 					else {
 						int flag = maximizer ? 1 : -1;
-						value = -AlphaBetaWithMemory(n, LOSE, WIN, d, -flag);
+						value = -AlphaBetaWithMemory(n, -beta, -alpha, d, -flag);
 					}
 					// Store the computed value for move ordering
 					a.value = value;
+					/*
+					if (maximizer)
+						alpha = Math.max(alpha, value);
+					else
+						beta = Math.min(beta, value);
+					*/
 					if (DEBUG) GraphVizPrinter.setRelation(n, a.value, root, LOSE, WIN);
 				} catch (InvalidActionException e) {
 					e.printStackTrace();
 				} catch (OutOfTimeException e) {
-					// Don't set a.value
+					System.out.println("Out of time");
+					// revert to the previously computed values
+					for (ActionValuePair ac: actions) {
+						ac.value = ac.previousValue;
+					}
+					break;
 				}
 			}
 			// Sort the actions for move ordering on the next iteration
 			Collections.sort(actions, Collections.reverseOrder());
+			
+			// And update the previous value field
+			for (ActionValuePair a: actions) {
+				a.previousValue = a.value;
+			}
+			
+			System.out.printf("%2.2f",0.001*(System.currentTimeMillis() - startTimeMillis));
+			System.out.println(": " + d + ": "+actions.get(0));
 			
 			if (times_up()) {
 				break;
 			}
 		}
 		if (DEBUG) GraphVizPrinter.printGraphToFile();
-	//	if (DEBUG) {
+
 			System.out.println("MTD called "+ mtdCalls + " times and got to depth " + d + " and checked " 
 					+ checkedNodes + " nodes in "
 					+ (System.currentTimeMillis() - startTimeMillis) + "ms");
 			System.out.println("Cache hits:"+cacheHits);
-		//}
+
 			System.out.println("Available actions:"+actions);
 		return getRandomBestAction(actions);
 	}
@@ -215,7 +237,7 @@ public class MTDDecider implements Decider {
 
 		return g;
 	}
-
+	
 	/**
 	 * Implementation of NegaMax with Alpha-Beta pruning and transposition-table
 	 * lookup
@@ -244,7 +266,7 @@ public class MTDDecider implements Decider {
 		 * below us) then we are called infrequently enough that we can afford
 		 * to check if we are out of time
 		 */
-		if (depth > 3) {
+		if (depth > 4) {
 			if (times_up())
 				throw new OutOfTimeException();
 		}
@@ -290,7 +312,7 @@ public class MTDDecider implements Decider {
 		int[] depthsToSearch;
 		if (depth > 4) {
 			depthsToSearch = new int[2];
-			depthsToSearch[0] = depth - 3;
+			depthsToSearch[0] = depth - 2; // TODO: this should be easily adjustable
 			depthsToSearch[1] = depth;
 		} else {
 			depthsToSearch = new int[1];
@@ -404,7 +426,7 @@ public class MTDDecider implements Decider {
 			bestActions.add(avp.action);
 		}
 
-		Collections.shuffle(bestActions);//, new Random(4));
+		Collections.shuffle(bestActions);
 		if (bestV == LOSE) {
 			if (DEBUG)
 				System.out.println("I LOST :(");
