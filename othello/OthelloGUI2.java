@@ -33,22 +33,27 @@ class GamePanel extends JPanel implements MouseListener {
 	
 	private static final long serialVersionUID = 1L;
 	private OthelloState board;
-	private Decider playerOne;
-	private Decider playerTwo;
+	private Decider computerPlayer;
 	private boolean turn;
 	private boolean inputEnabled;
+	private final boolean humanPlayerOne;
 
-	public GamePanel(Decider p1, Decider p2, OthelloState board) {
+	public GamePanel(Decider computerPlayer, OthelloState board, boolean computerStart) {
 		this.board = board;
-		this.playerOne = p1;
-		this.playerTwo = p2;
-		this.turn = true;
+		this.computerPlayer = computerPlayer;
+		this.turn = computerStart;
+		this.humanPlayerOne = !computerStart;
+		
 		addMouseListener(this);
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				Cursor savedCursor = getCursor();
 				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-				computerMove();
+				if (turn) {
+					computerMove();
+				} else {
+					inputEnabled = true;
+				}
 				setCursor(savedCursor);
 			}
 		});
@@ -68,7 +73,7 @@ class GamePanel extends JPanel implements MouseListener {
 					*  Square_L);
 		}
 		g.drawLine(0,  Height,  Width,  Height);
-		System.out.println("Redrawing board\n" + board);
+		//System.out.println("Redrawing board\n" + board);
 		for (byte i = 0; i < 8; i++)
 			for (byte j = 0; j < 8; j++)
 				switch (board.getSpotAsChar(j, i)) {
@@ -102,10 +107,10 @@ class GamePanel extends JPanel implements MouseListener {
 		if (inputEnabled) {
 			byte j = (byte) (e.getX() /  Square_L);
 			byte i = (byte) (e.getY() /  Square_L);
-			if ((i < 8) && (j < 8) && (board.getSpotAsChar(i, j) == ' ')) {
+			OthelloAction a = new OthelloAction(humanPlayerOne, (byte) i, (byte) j);
+			if (a.validOn(board)) {
 				try {
-					board = new OthelloAction(false, (byte) i, (byte) j)
-							.applyTo(board);
+					board = a.applyTo(board);
 					inputEnabled = false;
 				} catch (InvalidActionException e1) {
 					// TODO Auto-generated catch block
@@ -143,10 +148,10 @@ class GamePanel extends JPanel implements MouseListener {
 		boolean isPass;
 		do {
 			System.out.println("Starting Computer Move");
-			OthelloAction action = (OthelloAction) playerOne.decide(board);
+			OthelloAction action = (OthelloAction) computerPlayer.decide(board);
 			try {
 				board = action.applyTo(board);
-				System.out.println(board);
+				//System.out.println(board);
 			} catch (InvalidActionException e) {
 				throw new RuntimeException("Invalid action!");
 			}
@@ -229,7 +234,7 @@ public class OthelloGUI2 extends JFrame {
 	static final int Width = 8 * Square_L; // Width of the game board
 	static final int Height = 8 * Square_L; // Width of the game board
 
-	public OthelloGUI2() {
+	public OthelloGUI2(int whichPlayer, int nummilli) {
 		score_black = new JLabel("2"); // the game start with 2 black pieces
 		score_black.setForeground(Color.blue);
 		score_black.setFont(new Font("Dialog", Font.BOLD, 16));
@@ -240,12 +245,11 @@ public class OthelloGUI2 extends JFrame {
 		OthelloState start = new OthelloState();
 		start.setStandardStartState();
 
+		if (whichPlayer == 1)
+			gamePanel = new GamePanel(new MTDDecider(true, nummilli, 64), start, true);
+		else
+			gamePanel = new GamePanel(new MTDDecider(false, nummilli, 64), start, false);
 		
-		gamePanel = new GamePanel(new MTDDecider(true, 7000, 64),
-				new OthelloPlayer(false), start);
-		
-		/*gamePanel = new GamePanel(new MiniMaxDecider(true, 7),
-				new OthelloPlayer(false), start);*/
 		gamePanel.setMinimumSize(new Dimension( Width,
 				 Height));
 
@@ -274,9 +278,14 @@ public class OthelloGUI2 extends JFrame {
 	public static void main(String[] args) {
 		// Schedule a job for the event-dispatching thread:
 		// creating and showing this application's GUI.
+		if (args.length != 2) throw new IllegalArgumentException();
+		final int whichPlayer = Integer.parseInt(args[0]);
+		final int nummilli = Integer.parseInt(args[1]);
+		
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				OthelloGUI2 frame = new OthelloGUI2();
+				
+				OthelloGUI2 frame = new OthelloGUI2(whichPlayer, nummilli);
 			}
 		});
 
