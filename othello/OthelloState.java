@@ -242,7 +242,7 @@ public class OthelloState implements State {
 			spot = getSpotOnLine(line, index);
 		}
 		// Set the value in the stability table
-		System.out.println(lineToString(line) + " resolves to " + value);
+		if (DEBUG) System.out.println(lineToString(line) + " resolves to " + value);
 		stabilityTable[line + 32768] = value;
 	}
 	
