@@ -52,8 +52,11 @@ public class OthelloAction implements Action<OthelloState> {
 	 */
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("Player ").append(this.player ? "1" : "0").append(" is moving to ");
-		builder.append("(").append(this.x).append(", ").append(this.y).append(").");
+		//builder.append("Player ").append(this.player ? "1" : "0").append(" is moving to ");
+		//builder.append("(").append(this.x).append(", ").append(this.y).append(").");
+		int charA = 97; 
+		builder.append((char)(this.y+charA));
+		builder.append(this.x + 1);
 		return builder.toString();
 	}
 
