@@ -570,10 +570,25 @@ public class OthelloState implements State {
 	/** {@inheritDoc} */
 	@Override
 	public float heuristic() {
+		//System.out.printf("%f %f %f %f\n",this.pieceDifferential(), this.moveDifferential(), this.cornerDifferential(), this.stabilityDifferential());
+		Status s = this.getStatus();
+		int winconstant = 0;
+		switch (s) {
+		case PlayerOneWon:
+			winconstant = 5000;
+			break;
+		case PlayerTwoWon:
+			winconstant = -5000;
+			break;
+		default:
+			winconstant = 0;
+			break;
+		}
 		return this.pieceDifferential() +
 		   8 * this.moveDifferential() +
-		  30 * this.cornerDifferential() +
-		       this.stabilityDifferential();
+		  300 * this.cornerDifferential() +
+		   1 * this.stabilityDifferential() + 
+		   winconstant;
 	}
 	
 	/** {@inheritDoc} */
