@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class MTDDecider implements Decider {
 
@@ -32,6 +31,14 @@ public class MTDDecider implements Decider {
 		EntryType type;
 		int value;
 		int depth;
+
+	}
+	
+	// Helper class for storing several items in the transposition table
+	private class SearchStatistics {
+		int searchDepth;
+		int timeSpent;
+		int nodesEvaluated;
 
 	}
 
@@ -60,11 +67,14 @@ public class MTDDecider implements Decider {
 
 	// Counter to see how many nodes we touch
 	private int checkedNodes;
+	
+	private List<SearchStatistics> statsList;
 
 	// Should we use the secondary heuristic?
 	private boolean useAltHeuristic;
 	private int mtdCalls;
 	private int cacheHits;
+	private int leafNodes;
 
 	/**
 	 * Creates a new MTD(f)-based game-player
@@ -100,6 +110,7 @@ public class MTDDecider implements Decider {
 		this.maxdepth = maxdepth;
 		this.useAltHeuristic = useAltHeuristic;
 		USE_MTDF = usemtd;
+		statsList = new ArrayList<SearchStatistics>();
 	}
 
 	/** {@inheritDoc} */
@@ -122,7 +133,7 @@ public class MTDDecider implements Decider {
 		if (DEBUG) GraphVizPrinter.setState(root);
 		// Create ActionValuePairs so that we can order Actions
 		List<ActionValuePair> actions = buildAVPList(root.getActions());
-		checkedNodes = 0; mtdCalls = 0; cacheHits=0;
+		checkedNodes = 0; mtdCalls = 0; cacheHits=0; leafNodes = 0;
 		
 		int d;
 		for (d = 1; d < maxdepth; d++) {
@@ -138,16 +149,18 @@ public class MTDDecider implements Decider {
 						value = MTDF(n, (int) a.value, d);
 					else {
 						int flag = maximizer ? 1 : -1;
-						value = -AlphaBetaWithMemory(n, -beta, -alpha, d, -flag);
+						value = -AlphaBetaWithMemory(n, -beta , -alpha, d - 1, -flag);
 					}
 					actionsExplored++;
 					// Store the computed value for move ordering
 					a.value = value;
 					/*
-					if (maximizer)
+					if (maximizer) {
 						alpha = Math.max(alpha, value);
-					else*/
-					beta = Math.min(beta, value);
+					} else*/
+					//	beta = Math.min(beta, value);
+						
+					
 					
 					if (DEBUG) GraphVizPrinter.setRelation(n, a.value, root, LOSE, WIN);
 				} catch (InvalidActionException e) {
@@ -199,12 +212,20 @@ public class MTDDecider implements Decider {
 		}
 		if (DEBUG) GraphVizPrinter.printGraphToFile();
 
-			System.out.println("MTD called "+ mtdCalls + " times and got to depth " + d + " and checked " 
-					+ checkedNodes + " nodes in "
-					+ (System.currentTimeMillis() - startTimeMillis) + "ms");
-			System.out.println("Cache hits:"+cacheHits);
-
-			System.out.println("Available actions:"+actions);
+		SearchStatistics s = new SearchStatistics();
+		s.nodesEvaluated = leafNodes;
+		s.timeSpent = (int) (System.currentTimeMillis() - startTimeMillis);
+		s.searchDepth = d;
+		statsList.add(s);
+		
+		double nodesPerSec = (1000.0*s.nodesEvaluated) / s.timeSpent;
+		double EBF = Math.log(s.nodesEvaluated)/Math.log(s.searchDepth);
+		double searchEfficiency = (1.0 * leafNodes) / checkedNodes;
+			
+		System.out.printf("NPS:%.2f EBF:%.2f eff:%.2f\n", nodesPerSec, EBF, searchEfficiency);
+		System.out.println("Cache hits:"+cacheHits);
+			
+		System.out.println("Available actions:"+actions);
 		return getRandomBestAction(actions);
 	}
 
@@ -301,30 +322,31 @@ public class MTDDecider implements Decider {
 		SearchNode node = transpositionTable.get(state);
 		// TODO: shoot myself. This code wasn't working because I had node.depth
 		// >= depth rather than >
-		if (node != null && node.depth > depth) {
+		if (node != null && node.depth >= depth) {
 			if (DEBUG) GraphVizPrinter.setCached(state);
 			cacheHits++;
 			switch (node.type) {
 			case EXACT_VALUE:
 				return node.value;
-			case UPPERBOUND:
+			/*case UPPERBOUND:
 				if (node.value > alpha)
 					alpha = node.value;
 				break;
 			case LOWERBOUND:
 				if (node.value < beta)
 					beta = node.value;
-				break;
+				break;*/
 			}
 		}
 		// Is this state/our search done?
 		if (depth == 0 || state.getStatus() != Status.Ongoing) {
 			int h;
+			leafNodes++;
 			if (useAltHeuristic)
 				h = (int) state.heuristic2();
 			else
 				h = (int) state.heuristic();
-			int value = color * Math.max(Math.min(h, WIN), LOSE);
+			int value = color * h;
 			return saveAndReturnState(state, alpha, beta, depth, value, color);
 		}
 
@@ -403,7 +425,6 @@ public class MTDDecider implements Decider {
 
 		saveNode.depth = depth;
 		saveNode.value = value;
-		// saveNode.color = -color;
 		transpositionTable.put(state, saveNode);
 
 		return value;
@@ -448,7 +469,7 @@ public class MTDDecider implements Decider {
 			bestActions.add(avp.action);
 		}
 
-		Collections.shuffle(bestActions);
+		//Collections.shuffle(bestActions);
 		if (bestV == LOSE) {
 			if (DEBUG)
 				System.out.println("I LOST :(");
@@ -457,5 +478,21 @@ public class MTDDecider implements Decider {
 				System.out.println("I WIN :)");
 		}
 		return bestActions.get(0);
+	}
+	
+	public void printSearchStatistics() {
+		double avgNodesPerSec = 0; double avgEBF = 0;
+		for (SearchStatistics s: statsList) {
+			double nodesPerSec = (1000.0*s.nodesEvaluated) / s.timeSpent;
+			avgNodesPerSec += nodesPerSec;
+			double EBF = Math.log(s.nodesEvaluated)/Math.log(s.searchDepth);
+			avgEBF += EBF;
+		}
+		
+		avgNodesPerSec /= statsList.size();
+		avgEBF /= statsList.size();
+		
+		System.out.printf("Average Nodes Per Second:%.2f\n", avgNodesPerSec);
+		System.out.printf("Average EBF:%.2f\n", avgEBF);
 	}
 }

@@ -8,6 +8,7 @@ import gamePlayer.State;
 import gamePlayer.State.Status;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ public class MTDDecider2 implements Decider {
 	private static final int WIN = 100000;
 	private static final int LOSE = -100000;
 	private static final boolean DEBUG = false;
+	private static final int TABLE_SIZE = 100000;
 	private boolean maximizer;
 	private int searchTime;
 	private int maxdepth;
@@ -56,6 +58,7 @@ public class MTDDecider2 implements Decider {
 	private Map<State, SearchNode> transpositionTable;
 	private int loopsHit;
 	private int actionsChecked;
+	private int cacheHits;
 	
 	public MTDDecider2(boolean maximizer, int timeinmsec, int maxdepth) {
 		this.maximizer = maximizer;
@@ -66,9 +69,9 @@ public class MTDDecider2 implements Decider {
 	
 	@Override
 	public Action decide(State state) {
-		leafNodes = 0; checkedNodes = 0; loopsHit =0; actionsChecked = 0;
+		leafNodes = 0; checkedNodes = 0; loopsHit =0; actionsChecked = 0; cacheHits = 0;
 		startTimeMillis = System.currentTimeMillis();
-		transpositionTable = new HashMap<State, SearchNode>(10000);
+		transpositionTable = new HashMap<State, SearchNode>(TABLE_SIZE);
 		try {
 			Action a = iterative_deepening(state);
 			if (DEBUG) GraphVizPrinter.setDecision(a.applyTo(state));
@@ -91,10 +94,14 @@ public class MTDDecider2 implements Decider {
 		int d;
 		for (d = 1; d < this.maxdepth; d++) {
 			rootNode.depth = d;
-			if (d % 2 == 0)
-				evenGuess = MTD(rootNode, evenGuess, d);
-			else
-				oddGuess = MTD(rootNode, oddGuess, d);
+			try {
+				if (d % 2 == 0)
+					evenGuess = MTD(rootNode, evenGuess, d);
+				else
+					oddGuess = MTD(rootNode, oddGuess, d);
+			} catch (IllegalStateException ex) {
+				break;
+			}
 			
 			
 			System.out.printf("%2.2f",0.001*(System.currentTimeMillis() - startTimeMillis));
@@ -123,7 +130,7 @@ public class MTDDecider2 implements Decider {
 		double searchEfficiency = (1.0 * leafNodes) / checkedNodes;
 		double avgActionschecked = (1.0 * actionsChecked) / loopsHit;
 		
-		return String.format("NPS:%.2f EBF:%.2f eff:%.2f aact:%.2f\n", nodesPerSec, EBF, searchEfficiency, avgActionschecked);
+		return String.format("NPS:%.2f EBF:%.2f eff:%.2f aact:%.2f ch:%d\n", nodesPerSec, EBF, searchEfficiency, avgActionschecked, cacheHits);
 	}
 	
 	private boolean times_up() {
@@ -152,9 +159,19 @@ public class MTDDecider2 implements Decider {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private ActionValuePair MT(SearchNode n, int gamma, int depth) throws InvalidActionException {
+	private ActionValuePair MT(SearchNode n, int gamma, int depth) throws InvalidActionException, IllegalStateException {
 		checkedNodes++;
 		if (DEBUG) GraphVizPrinter.setState(n.gameState);
+		
+		/**
+		 * If we are not at a low depth (have at least more recursive calls
+		 * below us) then we are called infrequently enough that we can afford
+		 * to check if we are out of time
+		 */
+		if (depth > 4) {
+			if (times_up())
+				throw new IllegalStateException("Out of time");
+		}
 		
 		populateFromTable(n);
 		ActionValuePair bestAction = new ActionValuePair(null, 0);
@@ -174,39 +191,65 @@ public class MTDDecider2 implements Decider {
 		} else {// We are an interior node
 			// Start off with the worst value possible
 			bestAction.value = n.maxnode ? LOSE : WIN;
-			List<ActionValuePair> actions = buildAVPList(n.gameState.getActions(), n.bestAction);
+			List<ActionValuePair> actions = buildAVPList(n.gameState.getActions());//, n.bestAction);
 			
-			// Now find the best action to take from here
-			loopsHit++;
-			for (ActionValuePair avp: actions) {
-				actionsChecked++;
-				// If our current best action is above our (beta) cutoff, stop
-				if (n.maxnode) { if (bestAction.value >= gamma) break; }
-				else { if (bestAction.value < gamma) break; }
-				
-				State childState = avp.action.applyTo(n.gameState);
-				SearchNode c = new SearchNode();
-				c.gameState = childState;
-				c.maxnode = !n.maxnode;
-				c.depth = depth;
-				populateFromTable(c);
-				
-				int currentBound = n.maxnode ? c.f_plus : c.f_minus; 
-				
-				ActionValuePair bestChildAction;
-				// If we are above (or below) our current bound, look up a more accurate value.
-				if ((n.maxnode && currentBound >= gamma) || (!n.maxnode && currentBound < gamma)) {
-					bestChildAction = MT(c, gamma, depth - 1);
-				} else { // Just return our existing bound
-					bestChildAction = new ActionValuePair(null, currentBound);
+			// Partial move ordering. Check value up to depth D-3 and order by that
+			int[] depthsToSearch;
+			if (depth > 4) {
+				depthsToSearch = new int[2];
+				depthsToSearch[0] = depth - 2; // TODO: this should be easily adjustable
+				depthsToSearch[1] = depth;
+			} else {
+				depthsToSearch = new int[1];
+				depthsToSearch[0] = depth;
+			}
+			
+			// Do our shorter depth search first to order moves on the longer search
+			for (int i = 0; i < depthsToSearch.length; i++) {
+				// Now find the best action to take from here
+				loopsHit++;
+				for (ActionValuePair avp: actions) {
+					actionsChecked++;
+					// If our current best action is above our (beta) cutoff, stop
+					if (n.maxnode) { if (bestAction.value >= gamma) break; }
+					else { if (bestAction.value < gamma) break; }
+					
+					State childState = avp.action.applyTo(n.gameState);
+					SearchNode c = new SearchNode();
+					c.gameState = childState;
+					c.maxnode = !n.maxnode;
+					c.depth = depthsToSearch[i];
+					populateFromTable(c);
+					
+					int currentBound = n.maxnode ? c.f_plus : c.f_minus; 
+					
+					ActionValuePair bestChildAction;
+					// If we are above (or below) our current bound, look up a more accurate value.
+					if ((n.maxnode && currentBound >= gamma) || (!n.maxnode && currentBound < gamma)) {
+						bestChildAction = MT(c, gamma, depthsToSearch[i] - 1);
+					} else { // Just return our existing bound
+						bestChildAction = new ActionValuePair(null, currentBound);
+					}
+					// Set the action to match the action we used to get the child
+					bestChildAction.action = avp.action;
+					// And push the value back into the actions list for ordering
+					avp.value = bestChildAction.value;
+					// And update our best observed action
+					if (n.maxnode)
+						bestAction = maxAVP(bestAction, bestChildAction);
+					else
+						bestAction = minAVP(bestAction, bestChildAction);
 				}
-				// Set the action to match the action we used to get the child
-				bestChildAction.action = avp.action;
-				// And update our best observed action
-				if (n.maxnode)
-					bestAction = maxAVP(bestAction, bestChildAction);
-				else
-					bestAction = minAVP(bestAction, bestChildAction);
+				
+				if (depthsToSearch.length > 1 && i==0) {
+					if (n.maxnode) {
+						// Sort the actions to order moves on the deeper search
+						Collections.sort(actions, Collections.reverseOrder());
+					} else {
+						// Sort the actions to order moves on the deeper search
+						Collections.sort(actions);
+					}
+				}
 			}
 			if (DEBUG) GraphVizPrinter.setRelation(n.gameState, bestAction.value, n.gameState.getParentState(), gamma-1, gamma);
 		}
@@ -228,7 +271,10 @@ public class MTDDecider2 implements Decider {
 	
 	private void populateFromTable(SearchNode n) {
 		SearchNode node = transpositionTable.get(n.gameState);
-		if (node != null && node.depth > n.depth) {
+		if (node == null) return;
+		cacheHits++;
+		if (node.depth >= n.depth) {
+			
 			switch (node.type) {
 			case LOWERBOUND:
 				n.f_minus = node.f_minus;
@@ -243,7 +289,8 @@ public class MTDDecider2 implements Decider {
 	}
 
 	private void saveToTable(SearchNode n) {
-		transpositionTable.put(n.gameState, n);
+		if (transpositionTable.size() <  TABLE_SIZE)
+			transpositionTable.put(n.gameState, n);
 	}
 	
 	private List<ActionValuePair> buildAVPList(List<Action> actions) {
