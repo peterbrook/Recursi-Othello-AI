@@ -146,9 +146,9 @@ public class MTDDecider implements Decider {
 					/*
 					if (maximizer)
 						alpha = Math.max(alpha, value);
-					else
-						beta = Math.min(beta, value);
-					*/
+					else*/
+					beta = Math.min(beta, value);
+					
 					if (DEBUG) GraphVizPrinter.setRelation(n, a.value, root, LOSE, WIN);
 				} catch (InvalidActionException e) {
 					e.printStackTrace();
