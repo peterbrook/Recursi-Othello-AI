@@ -67,4 +67,10 @@ public class OthelloAction implements Action<OthelloState> {
 	public boolean isPass() {
 		return x == -1 && y==-1;
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		OthelloAction other = (OthelloAction) obj;
+		return other != null && this.x == other.x && this.y == other.y && this.player == other.player;
+	}
 }
