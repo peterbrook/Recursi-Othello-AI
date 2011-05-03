@@ -6,6 +6,7 @@ import gamePlayer.Decider;
 import gamePlayer.InvalidActionException;
 import gamePlayer.State.Status;
 import gamePlayer.algorithms.MTDDecider;
+import gamePlayer.algorithms.MTDDecider2;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -245,10 +246,12 @@ public class OthelloGUI2 extends JFrame {
 		OthelloState start = new OthelloState();
 		start.setStandardStartState();
 
-		if (whichPlayer == 1)
-			gamePanel = new GamePanel(new MTDDecider(true, nummilli, 64), start, true);
+		if (whichPlayer == 1) {
+			//gamePanel = new GamePanel(new MTDDecider(true, nummilli, 64), start, true);
+			gamePanel = new GamePanel(new MTDDecider2(true, nummilli, 64), start, true);
+		}
 		else
-			gamePanel = new GamePanel(new MTDDecider(false, nummilli, 64), start, false);
+			gamePanel = new GamePanel(new MTDDecider2(false, nummilli, 64), start, false);
 		
 		gamePanel.setMinimumSize(new Dimension( Width,
 				 Height));

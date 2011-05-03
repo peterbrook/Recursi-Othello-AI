@@ -2,16 +2,15 @@ package othello;
 
 import gamePlayer.Game;
 import gamePlayer.State.Status;
-import gamePlayer.algorithms.ABWithMemoryDecider;
 import gamePlayer.algorithms.MTDDecider;
-import gamePlayer.algorithms.MiniMaxDecider;
-import gamePlayer.algorithms.MiniMaxWithMemoryDecider;
-import gamePlayer.algorithms.NegaMaxDecider;
+import gamePlayer.algorithms.MTDDecider2;
 
 public class Othello {
 	
 	public static void main(String[] args) {
 		int p1 = 0, p2=0;
+		MTDDecider2 d1 = new MTDDecider2(true, 30, 64);
+		MTDDecider2 d2 = new MTDDecider2(false, 30, 64);
 		for (int i=0; i < 20; i++) {
 			OthelloState startState = new OthelloState();
 			startState.setStandardStartState();/*
@@ -23,13 +22,30 @@ public class Othello {
 			startState.setValueOnBoards((byte)3, (byte)4, (byte)3);
 			startState.generateMoveBoards();*/
 			//System.out.println("Start State:\n"+startState);
-			Game g = new Game(new MTDDecider(true, 30, 64, false, false),
-					 new MTDDecider(false, 30, 64, true, false),
-					 startState);
+			Game g = new Game(d1, d2, startState);
 			g.run();
 			if (g.getStatus() == Status.PlayerOneWon) p1++;
 			if (g.getStatus() == Status.PlayerTwoWon) p2++;
+			
+			System.out.println();
+			System.out.println("==========================");
+			System.out.println("P1 STATS:");
+			d1.printSearchStatistics();
+			
+			System.out.println("P2 STATS:");
+			d2.printSearchStatistics();
+			System.out.println("==========================");
 		}
+		
+		System.out.println("FINAL STATS:");
+		System.out.println("==========================");
+		System.out.println("P1 STATS:");
+		d1.printSearchStatistics();
+		
+		System.out.println("P2 STATS:");
+		d2.printSearchStatistics();
+		System.out.println("==========================");
+		
 		System.out.println("P1: "+p1+" P2: "+p2);
 	}
 		
