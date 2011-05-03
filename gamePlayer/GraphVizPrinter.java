@@ -26,6 +26,7 @@ public class GraphVizPrinter {
 	static {
 		gv = new GraphViz();
 		gv.addln(gv.start_graph());
+		gv.addln("rankdir=BT;");
 	}
 	
 	/**
@@ -51,7 +52,7 @@ public class GraphVizPrinter {
 	 * @param daddy The parent State.
 	 */
 	public static void setRelation(State state, float value, State daddy) {
-		if (daddy != null) gv.addln(getId(daddy) + " -> " + getId(state) + " [label=\"" + value + "\"];");
+		if (daddy != null) gv.addln(getId(state) + " -> " + getId(daddy) + " [label=\"" + value + "\"];");
 	}
 	
 	/**
@@ -63,7 +64,7 @@ public class GraphVizPrinter {
 	 * @param alpha the beta value passed in to this search
 	 */
 	public static void setRelation(State state, float value, State daddy, float alpha, float beta) {
-		if (daddy != null) gv.addln(getId(daddy) + " -> " + getId(state) + " [label=\"" + value + " (" + alpha + ", " + beta +")\"];");
+		if (daddy != null) gv.addln(getId(state) + " -> " + getId(daddy) + " [label=\"" + value + " \\n[" + alpha + ", " + beta +"]\"];");
 	}
 	
 	
