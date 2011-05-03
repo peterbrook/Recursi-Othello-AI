@@ -32,4 +32,11 @@ public interface Action<T extends State> {
 	@Override
 	public String toString();
 
+	/**
+	 * Implementers must be able to compare two actions to see if they are the same.
+	 * @param obj 
+	 * @return
+	 */
+	@Override
+	public boolean equals(Object obj);
 }
