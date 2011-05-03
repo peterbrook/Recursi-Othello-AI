@@ -125,8 +125,8 @@ public class MTDDecider implements Decider {
 		checkedNodes = 0; mtdCalls = 0; cacheHits=0;
 		
 		int d;
-		for (d = 1; d < maxdepth; d+=2) {
-			int alpha = LOSE; int beta = WIN;
+		for (d = 1; d < maxdepth; d++) {
+			int alpha = LOSE; int beta = WIN; int actionsExplored = 0;
 			for (ActionValuePair a : actions) {
 				State n;
 				try {
@@ -140,6 +140,7 @@ public class MTDDecider implements Decider {
 						int flag = maximizer ? 1 : -1;
 						value = -AlphaBetaWithMemory(n, -beta, -alpha, d, -flag);
 					}
+					actionsExplored++;
 					// Store the computed value for move ordering
 					a.value = value;
 					/*
@@ -153,9 +154,30 @@ public class MTDDecider implements Decider {
 					e.printStackTrace();
 				} catch (OutOfTimeException e) {
 					System.out.println("Out of time");
-					// revert to the previously computed values
-					for (ActionValuePair ac: actions) {
-						ac.value = ac.previousValue;
+					// revert to the previously computed values. 
+					//HOWEVER, if our best value is found to be catastrophic, keep its value.
+					// TODO: this should keep all found catastrophic values, not just the first!
+					boolean resetBest = true;
+					if (actionsExplored > 1) {// If we have looked at more than one possible action
+						ActionValuePair bestAction = actions.get(0);
+						// check to see if the best action is worse than another action
+						for (int i=0; i < actionsExplored; i++) {
+							if (bestAction.value < actions.get(i).value) {
+								// don't reset the first choice
+								resetBest = false;
+								break;
+							}
+						}	
+					}
+					
+					if (resetBest) {
+						for (ActionValuePair ac: actions) {
+							ac.value = ac.previousValue;
+						}
+					} else {
+						for (int i=1; i < actionsExplored; i++) {
+							actions.get(i).value = actions.get(i).previousValue;
+						}
 					}
 					break;
 				}
