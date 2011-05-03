@@ -110,7 +110,7 @@ public class NegaMaxDecider implements Decider {
 				float newValue = -NegaMax(newState, 1, -beta, -alpha, -flag);
 				if (DEBUG)
 					GraphVizPrinter.setRelation(newState, newValue, state);
-				a.value = newValue;
+				a.value = (int) newValue;
 				if (maximize)
 					alpha = Math.max(alpha, newValue);
 				else

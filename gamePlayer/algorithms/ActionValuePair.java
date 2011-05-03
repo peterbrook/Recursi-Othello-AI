@@ -6,7 +6,7 @@ import gamePlayer.Action;
 public class ActionValuePair implements Comparable<ActionValuePair> {
 
 	Action action;
-	float value, previousValue;
+	int value, previousValue;
 	
 	public ActionValuePair(Action a, int v) {
 		this.action = a;

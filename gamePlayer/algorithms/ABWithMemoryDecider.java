@@ -69,7 +69,7 @@ public class ABWithMemoryDecider implements Decider {
 					int depth = ITERATIVE_DEEPENING ?  d : maxSearchDepth;
 					float mmv = AlphaBetaWithMemory(n, alpha, beta, depth-1, !maximizer);
 					if (DEBUG) GraphVizPrinter.setRelation(n, mmv, state);
-					a.value = mmv;
+					a.value = (int) mmv;
 					
 					/*
 					// Update A-B bounds
