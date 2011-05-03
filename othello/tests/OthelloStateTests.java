@@ -149,14 +149,14 @@ public class OthelloStateTests {
 	public void testPlan2() {
 		OthelloState state = new OthelloState();
 		state.setStandardStartState();
-		String[] moves = "d3 c5 e6 f5 f6 e3 d6 f7 b6 d7 d8 c6".split(" "); // g7 b5 
+		String[] moves = "c4 e3 f6 e6 f5 c5 f4 g6 h7 g5 d6 f7 g8 f8 e8 e7 b6 h6 h5 h4 h3 d3 g4 b3 c3 b4".split(" "); //  g7 
 		
 		for (String s: moves) {
 			Point p = sToM(s);
 			state = state.childOnMove((byte)p.x, (byte)p.y);
 		}
 		
-		Decider d = new MTDDecider(true, 50000, 64);
+		Decider d = new MTDDecider(true, 7000, 64);
 		OthelloAction a = (OthelloAction) d.decide(state);
 		
 		System.out.println("Move: "+a);
