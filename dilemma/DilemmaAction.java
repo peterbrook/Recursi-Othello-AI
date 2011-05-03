@@ -82,5 +82,11 @@ public class DilemmaAction implements Action<DilemmaState> {
 	public String toString() {
 		return "Action "+val;
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		DilemmaAction other = (DilemmaAction) obj;
+		return other != null && this.val == other.val; 
+	} 
 
 }
