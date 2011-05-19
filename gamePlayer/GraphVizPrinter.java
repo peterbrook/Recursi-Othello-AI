@@ -51,8 +51,12 @@ public class GraphVizPrinter {
 	 * @param value The weight (heuristic) value of this relationship.
 	 * @param daddy The parent State.
 	 */
+	public static void setRelation(State state, float value, State daddy, int iter) {
+		if (daddy != null) gv.addln(getId(state) + " -> " + getId(daddy) + " [label=\"" + value + "\\n" + iter + ".\"];");
+	}
+	
 	public static void setRelation(State state, float value, State daddy) {
-		if (daddy != null) gv.addln(getId(state) + " -> " + getId(daddy) + " [label=\"" + value + "\"];");
+		setRelation(state, value, daddy, 0);
 	}
 	
 	/**
@@ -63,8 +67,12 @@ public class GraphVizPrinter {
 	 * @param alpha the alpha value passed in to this search
 	 * @param alpha the beta value passed in to this search
 	 */
+	public static void setRelation(State state, float value, State daddy, float alpha, float beta, int iter) {
+		if (daddy != null) gv.addln(getId(state) + " -> " + getId(daddy) + " [label=\"" + value + " \\n"+ iter + ". [" + alpha + ", " + beta +"]\"];");
+	}
+	
 	public static void setRelation(State state, float value, State daddy, float alpha, float beta) {
-		if (daddy != null) gv.addln(getId(state) + " -> " + getId(daddy) + " [label=\"" + value + " \\n[" + alpha + ", " + beta +"]\"];");
+		setRelation(state, value, daddy, alpha, beta, 0);
 	}
 	
 	
