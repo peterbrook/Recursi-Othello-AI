@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.LinkedList;
+import java.util.Random;
 
 import gamePlayer.Action;
 import gamePlayer.State;
@@ -43,12 +44,31 @@ public class OthelloState implements State {
 	// Lookup table that has valid moves for lines
 	private static short[][] movesTable = new short[65536][2];
 	
+	// Lookup table storing the random long corresponding to each state of each square on the board
+	private static int[][][] zobristHashes = new int[dimension][dimension][3];
+	
 	/**
 	 * The static constructor to generate our tables.
 	 */
 	static {
 		generateTables((short)0, (byte)0, (byte)0);
+		generateHashValues();
 		System.out.println("Finished generating tables!");
+	}
+	
+	/**
+	 * Generates random bitstrings which correspond to each state of each 
+	 * board square. Used for hashing the state.
+	 */
+	private static void generateHashValues() {
+		Random r = new Random(45111);
+		for (int i=0; i < dimension; i++) {
+			for (int j=0; j < dimension; j++) {
+				for (int state=0; state < 3; state++) {
+					zobristHashes[i][j][state] = r.nextInt();
+				}
+			}
+		}
 	}
 	
 	/**
@@ -335,6 +355,8 @@ public class OthelloState implements State {
 	private short[] p1MoveBoard, p2MoveBoard;
 	// Our parent
 	private OthelloState parent;
+	// Our hash for the state that we represent
+	private int hashValue;
 	
 	/**
 	 * Initialize this child OthelloState.
@@ -538,8 +560,10 @@ public class OthelloState implements State {
 				this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] << 2);
 			}
 		}
+		
+		computeHashValue();
 	}
-	
+
 	/**
 	 * Flip the value on a line at a particular index.
 	 * @param line  The line to use.
@@ -795,6 +819,39 @@ public class OthelloState implements State {
 		return builder.toString();
 	}
 	
+	private void computeHashValue() {
+		int hc = 0;
+		//00 = empty; 01 = ignored; 10 = white; 11 = black.
+		for (int i=0; i < dimension; i++) {
+			for (int j=0; j < dimension; j++) {
+				// get the value from the board
+				short value = getSpotOnBoardAt(hBoard, (byte)0, (byte)i, (byte)j);
+				// and convert it into 0, 1 or 2 (the state as an index into the zobristHash table
+				int state = 0;
+				switch (value) {
+				case 0:
+					state = 0;
+					break;
+				case 2:
+					state = 1;
+					break;
+				case 3:
+					state = 2;
+					break;
+				default:
+					break;
+				}
+				
+				if (i==0 && j==0) {
+					hc = zobristHashes[i][j][state];
+				} else {
+					hc ^= zobristHashes[i][j][state];
+				}
+			}
+		}
+		hashValue = hc;
+	}
+	
 	/**
 	 * Returns an integer hash code for this OthelloState.
 	 * If two objects are equal, then they must have the same hash code.
@@ -802,7 +859,8 @@ public class OthelloState implements State {
 	 */
 	@Override
 	public int hashCode() {
-		return hBoard[3] << 16 | hBoard[4];
+		//return hBoard[3] << 16 | hBoard[4];
+		return hashValue;
 	}
 	
 	/**
