@@ -178,6 +178,7 @@ class GamePanel extends JPanel implements MouseListener {
 		// Next person's turn
 		this.turn = !this.turn;
 		inputEnabled = true;
+		System.gc();
 		/*
 		 * Move move = new Move(); if
 		 * (board.findMove(TKind.white,gameLevel,move)) {
