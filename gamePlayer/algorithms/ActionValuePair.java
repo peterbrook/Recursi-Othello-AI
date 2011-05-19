@@ -6,12 +6,14 @@ import gamePlayer.Action;
 public class ActionValuePair implements Comparable<ActionValuePair> {
 
 	Action action;
+	ActionValuePair principalVariation;
 	int value, previousValue;
 	
 	public ActionValuePair(Action a, int v) {
 		this.action = a;
 		this.value = v;
 		this.previousValue = 0;
+		this.principalVariation = null;
 	}
 
 	@Override
