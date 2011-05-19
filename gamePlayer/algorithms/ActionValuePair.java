@@ -23,7 +23,17 @@ public class ActionValuePair implements Comparable<ActionValuePair> {
 	
 	@Override
 	public String toString() {
-		return "(Action : " + action + " Value; " + value + ")";
+		StringBuilder sb = new StringBuilder();
+		sb.append("(Action : ");
+		sb.append(action);
+		ActionValuePair pv = this.principalVariation;
+		while (pv.action != null) {
+			sb.append("->");
+			sb.append(pv.action);
+			pv = pv.principalVariation;
+		}
+		sb.append(" Value: " + value + ")");
+		return sb.toString();
 	}
 	
 }
