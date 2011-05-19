@@ -43,7 +43,7 @@ public class MTDDecider2 implements Decider {
 	private static final int WIN = 100000;
 	private static final int LOSE = -100000;
 	private static final boolean DEBUG = false;
-	private static final int TABLE_SIZE = 100000;
+	private static final int TABLE_SIZE = 500000;
 	private boolean maximizer;
 	private int searchTime;
 	private int maxdepth;
@@ -65,13 +65,14 @@ public class MTDDecider2 implements Decider {
 		this.searchTime = timeinmsec;
 		this.maxdepth = maxdepth;
 		this.statsList = new ArrayList<SearchStatistics>();
+		transpositionTable = new TranspositionTable<State, SearchNode>(TABLE_SIZE);
+		
 	}
 	
 	@Override
 	public Action decide(State state) {
 		leafNodes = 0; checkedNodes = 0; loopsHit =0; actionsChecked = 0; cacheHits = 0;
 		startTimeMillis = System.currentTimeMillis();
-		transpositionTable = new HashMap<State, SearchNode>(TABLE_SIZE);
 		try {
 			if (DEBUG) GraphVizPrinter.setState(state);
 			Action a = iterative_deepening(state);
@@ -96,10 +97,14 @@ public class MTDDecider2 implements Decider {
 		for (d = 1; d < this.maxdepth; d++) {
 			rootNode.depth = d;
 			try {
-				if (d % 2 == 0)
+				if (d < 6) {
+					if (d % 2 == 0)
+						evenGuess = MTD(rootNode, evenGuess, d);
+					else
+						oddGuess = MTD(rootNode, oddGuess, d);
+				} else {
 					evenGuess = MTD(rootNode, evenGuess, d);
-				else
-					oddGuess = MTD(rootNode, oddGuess, d);
+				}
 			} catch (IllegalStateException ex) {
 				early_exit = true;
 				break;
@@ -107,7 +112,7 @@ public class MTDDecider2 implements Decider {
 			
 			
 			System.out.printf("%2.2f",0.001*(System.currentTimeMillis() - startTimeMillis));
-			System.out.print(": " + d + " " + (d % 2 == 0 ? evenGuess : oddGuess));
+			System.out.print(": " + d + " " + (((d % 2 == 1) && d < 6) ? oddGuess: evenGuess));
 			System.out.println();
 			
 			if (times_up()) {
@@ -126,10 +131,10 @@ public class MTDDecider2 implements Decider {
 		// If we did exit early, then the search depth we want to use is the previous one
 		d--;
 		Action move;
-		if (d % 2 == 0)
-			move = evenGuess.action;
-		else
+		if (d % 2 == 1 && d < 6)
 			move = oddGuess.action;
+		else
+			move = evenGuess.action;
 		System.out.println("Moving to "+move);
 		return move;
 	}
@@ -176,7 +181,17 @@ public class MTDDecider2 implements Decider {
 		return g;
 	}
 	
-	@SuppressWarnings("unchecked")
+	
+	/**
+	 * Performs a Memory-enhanced Test search from the given search state stored in the search node, going down the given depth 
+	 * @param n The search node to start searching from
+	 * @param gamma The null window upper bound
+	 * @param depth The depth to search
+	 * @param iter unused, except for debugging
+	 * @return an ActionValuePair which stores the minimax value of this node as well as the best action to take from it
+	 * @throws InvalidActionException
+	 * @throws IllegalStateException If we run out of time during the search
+	 */
 	private ActionValuePair MT(SearchNode n, int gamma, int depth, int iter) throws InvalidActionException, IllegalStateException {
 		checkedNodes++;
 		if (DEBUG) GraphVizPrinter.setState(n.gameState);
@@ -250,15 +265,13 @@ public class MTDDecider2 implements Decider {
 					} else { // Just return our existing bound
 						bestChildAction = new ActionValuePair(null, currentBound);
 					}
-					// Set the action to match the action we used to get the child
-					bestChildAction.action = avp.action;
 					// And push the value back into the actions list for ordering
 					avp.value = bestChildAction.value;
 					// And update our best observed action
 					if (n.maxnode)
-						bestAction = maxAVP(bestAction, bestChildAction);
+						bestAction = maxAVP(bestAction, avp.action, bestChildAction);
 					else
-						bestAction = minAVP(bestAction, bestChildAction);
+						bestAction = minAVP(bestAction, avp.action, bestChildAction);
 				}
 				
 				if (depthsToSearch.length > 1 && i==0) {
@@ -343,22 +356,24 @@ public class MTDDecider2 implements Decider {
 		return res;
 	}
 	
-	private ActionValuePair maxAVP(ActionValuePair l, ActionValuePair r) {
-		if (l.value > r.value)
-			return l;
-		if (l.value < r.value)
-			return r;
-		if (l.action == null) return r;
-		return l;
+	private ActionValuePair maxAVP(ActionValuePair currentBestAction, Action transitionAction, ActionValuePair bestChildAction) {
+		if (currentBestAction.action == null || currentBestAction.value < bestChildAction.value) {
+			// update the current best action
+			currentBestAction.principalVariation = bestChildAction;
+			currentBestAction.value = bestChildAction.value;
+			currentBestAction.action = transitionAction;
+		}
+		return currentBestAction;
 	}
 	
-	private ActionValuePair minAVP(ActionValuePair l, ActionValuePair r) {
-		if (l.value < r.value)
-			return l;
-		if (l.value > r.value)
-			return r;
-		if (l.action == null) return r;
-		return l;
+	private ActionValuePair minAVP(ActionValuePair currentBestAction, Action transitionAction, ActionValuePair bestChildAction) {
+		if (currentBestAction.action == null || currentBestAction.value > bestChildAction.value) {
+			// update the current best action
+			currentBestAction.principalVariation = bestChildAction;
+			currentBestAction.value = bestChildAction.value;
+			currentBestAction.action = transitionAction;
+		}
+		return currentBestAction;
 	}
 
 	public void printSearchStatistics() {
