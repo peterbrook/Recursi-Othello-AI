@@ -14,8 +14,10 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.JFrame;
@@ -235,6 +237,30 @@ public class OthelloGUI2 extends JFrame {
 	static final int Width = 8 * Square_L; // Width of the game board
 	static final int Height = 8 * Square_L; // Width of the game board
 
+	private Point sToM(String move) {
+		if (move.length() != 2) {
+			throw new IllegalArgumentException();
+		}
+		HashMap<Character,Integer> charMap = new HashMap<Character, Integer>();
+		charMap.put('a', 0);
+		charMap.put('b', 1);
+		charMap.put('c', 2);
+		charMap.put('d', 3);
+		charMap.put('e', 4);
+		charMap.put('f', 5);
+		charMap.put('g', 6);
+		charMap.put('h', 7);
+		
+		char c1 = move.charAt(0);
+		char c2 = move.charAt(1);
+		
+		Point p = new Point();
+		p.x = Character.getNumericValue(c2) - 1;
+		p.y = charMap.get(c1);
+		return p;
+		
+	}
+	
 	public OthelloGUI2(int whichPlayer, int nummilli) {
 		score_black = new JLabel("2"); // the game start with 2 black pieces
 		score_black.setForeground(Color.blue);
@@ -245,13 +271,21 @@ public class OthelloGUI2 extends JFrame {
 
 		OthelloState start = new OthelloState();
 		start.setStandardStartState();
-
-		if (whichPlayer == 1) {
-			//gamePanel = new GamePanel(new MTDDecider(true, nummilli, 64), start, true);
-			gamePanel = new GamePanel(new MTDDecider2(true, nummilli, 64), start, true);
+		/*
+		String[] moves = "d3 c3 c4 c5 b5 d2 c2 f3 f5 c6 f4 a5 a6 a7 d1 e3 d6 a4 g3 e2 b4 c1 b1 e1 f1 a3 c7 f2 g2 g4 b3 h1".split(" "); // h4 b2 
+		
+		for (String s: moves) {
+			Point p = sToM(s);
+			start = start.childOnMove((byte)p.x, (byte)p.y);
 		}
-		else
-			gamePanel = new GamePanel(new MTDDecider2(false, nummilli, 64), start, false);
+		
+		boolean computerIsPlayerOne = false;
+		boolean computerMovesFirst = false;
+		*/
+		boolean computerIsMaximizer = (whichPlayer == 1);
+		boolean computerMovesFirst = computerIsMaximizer;
+		
+		gamePanel = new GamePanel(new MTDDecider2(computerIsMaximizer, nummilli, 64), start, computerMovesFirst);
 		
 		gamePanel.setMinimumSize(new Dimension( Width,
 				 Height));
