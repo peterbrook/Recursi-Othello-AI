@@ -22,7 +22,7 @@ public class OthelloState implements State {
 	private static final boolean DEBUG = false;
 	// The dimension of this board. Since we're using shorts, must be less than equal to 8.
 	private static final int dimension = 8;
-	private static final boolean ZOBRIST_HASHING = false;
+	private static final boolean ZOBRIST_HASHING = true;
 	
 	/**
 	 * 00 = empty; 01 = ignored; 10 = white; 11 = black.
