@@ -9,9 +9,12 @@ public class Othello {
 	
 	public static void main(String[] args) {
 		int p1 = 0, p2=0;
-		MTDDecider2 d1 = new MTDDecider2(true, 30, 64);
-		MTDDecider2 d2 = new MTDDecider2(false, 30, 64);
-		for (int i=0; i < 20; i++) {
+		MTDDecider2 d1 = new MTDDecider2(true, 12500, 64);
+		//d1.INTERMOVE_TRANSPOSITIONS = true;
+		//d1.initializeTranspositionTable();
+		MTDDecider2 d2 = new MTDDecider2(false, 12500, 64);
+		//d2.INTERMOVE_TRANSPOSITIONS = false;
+		for (int i=0; i < 10; i++) {
 			OthelloState startState = new OthelloState();
 			startState.setStandardStartState();/*
 			startState.setValueOnBoards((byte)2, (byte)2, (byte)3);
