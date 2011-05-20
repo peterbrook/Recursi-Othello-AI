@@ -22,6 +22,7 @@ public class OthelloState implements State {
 	private static final boolean DEBUG = false;
 	// The dimension of this board. Since we're using shorts, must be less than equal to 8.
 	private static final int dimension = 8;
+	private static final boolean ZOBRIST_HASHING = false;
 	
 	/**
 	 * 00 = empty; 01 = ignored; 10 = white; 11 = black.
@@ -560,8 +561,8 @@ public class OthelloState implements State {
 				this.p2MoveBoard[i] = (short)(this.p2MoveBoard[i] << 2);
 			}
 		}
-		
-		computeHashValue();
+		if (ZOBRIST_HASHING)
+			computeHashValue();
 	}
 
 	/**
@@ -859,8 +860,11 @@ public class OthelloState implements State {
 	 */
 	@Override
 	public int hashCode() {
-		//return hBoard[3] << 16 | hBoard[4];
-		return hashValue;
+		if (ZOBRIST_HASHING)
+			return hashValue;
+		else
+			return hBoard[3] << 16 | hBoard[4];
+		
 	}
 	
 	/**
