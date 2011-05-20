@@ -156,7 +156,7 @@ public class OthelloStateTests {
 			state = state.childOnMove((byte)p.x, (byte)p.y);
 		}
 
-		Decider d = new MTDDecider2(true, 70000, 14);
+		Decider d = new MTDDecider2(true, 12500, 64);
 		OthelloAction a = (OthelloAction) d.decide(state);
 		
 		System.out.println("Move: "+a);
@@ -169,7 +169,6 @@ public class OthelloStateTests {
 			e.printStackTrace();
 		}
 	}
-	
 	@Test
 	public void testPlan2() {
 		OthelloState state = new OthelloState();
